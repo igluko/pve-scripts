@@ -90,12 +90,13 @@ eval 'qm config $VMID_NEW | grep net.: | sed -E "s/(net[0-9]):(.*)=(..:..:..:..:
 checkError "Set new MAC address"
 
 # Set new VM Generation ID
-eval 'qm set $VMID_NEW -vmgenid 1'
+eval 'qm set $VMID_NEW --vmgenid 1'
 checkError "Set new VM Generation ID address"
 
-# Set new VM Generation ID
-eval 'qm set $VMID_NEW -vmgenid 1'
-checkError "Set new VM Generation ID address"
+# Set new SMBIOS UUID
+UUID=$(cat /proc/sys/kernel/random/uuid)
+eval 'qm set $VMID_NEW --smbios1 uuid=$UUID'
+checkError "Set new SMBIOS UUID"
 
 
 

@@ -1,21 +1,48 @@
 #!/bin/bash
 
 # check number of parameters
-if [ $# -ne 0 ]; then
+if [ $# -ne 1 ]; then
     echo "usage: sync.sh"
     exit 1
 fi
 
-# check syncoid is available
-if [ ! -f /usr/sbin/syncoid ]; then
-    echo "file /usr/sbin/syncoid not exists, please install syncoid"
-    exit 1
-fi
-
-DST_NODE="10.25.254.246"
+DST_NODE=$1
 SSH="ssh -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q root@$DST_NODE"
 SCP="scp -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q"
 SYNCOID='/usr/sbin/syncoid --sshoption="ConnectTimeout=5" --skip-parent -r --sendoptions=-wR --force-delete --recvoptions="-F -o keylocation=file:///tmp/passphrase" --exclude=".*-[6-9][0-9][0-9]-disk-[0-9]+"'
+
+# check syncoid is available
+if [ ! -f /usr/sbin/syncoid ]; then
+    echo "[WARN] file /usr/sbin/syncoid not exists, installing syncoid"
+    apt update
+    apt install debhelper libcapture-tiny-perl libconfig-inifiles-perl pv lzop mbuffer build-essential -y
+    # Download the repo as root to avoid changing permissions later
+    sudo git clone https://github.com/jimsalterjrs/sanoid.git
+    cd sanoid
+    # checkout latest stable release or stay on master for bleeding edge stuff (but expect bugs!)
+    git checkout $(git tag | grep "^v" | tail -n 1)
+    ln -s packages/debian .
+    dpkg-buildpackage -uc -us
+    apt install ../sanoid_*_all.deb
+    # enable and start the sanoid timer
+    systemctl enable sanoid.timer
+    systemctl start sanoid.timer
+fi
+
+# check jq is available
+if [ ! -f /usr/bin/jq ]; then
+    echo "[WARN] file /usr/bin/jq not exists install jq"
+    apt update 
+    apt install jq -y
+fi
+
+# check jq is available
+if [ ! $SSH "-f /usr/bin/jq" ]; then
+    echo "file /usr/bin/jq not exists on remote host, please install jq"
+    exit 1
+fi
+
+exit
 
 # STORS=$(pvesh get /nodes/`hostname`/storage --output=json-pretty | jq '.[] | select(.type=="zfspool")') 
 

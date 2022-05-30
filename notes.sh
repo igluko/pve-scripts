@@ -32,7 +32,7 @@ echo "#"
 function getSyncoidSnaps(){
 echo "#**Syncoid snapshots:**"
 echo "#"
-zfs list -t snapshot -o name | grep syncoid | awk '{printf "#%s \\\n" , $0}'
+/usr/sbin/zfs list -t snapshot -o name | grep syncoid | awk '{printf "#%s \\\n" , $0}'
 echo "#**end**"
 }
 

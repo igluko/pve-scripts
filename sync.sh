@@ -4,7 +4,7 @@ SCRIPTPATH=`dirname $SCRIPT`
 
 # check number of parameters
 if [ $# -ne 1 ]; then
-    echo "usage: sync.sh"
+    echo "usage: sync.sh 1.2.3.4"
     exit 1
 fi
 

@@ -25,7 +25,7 @@ eval  "$SCP -r /etc/pve/local/lxc/[1-5]* root@$DST_NODE:/etc/pve/local/lxc/ 2>/d
 eval "$SYNCOID rpool/data root@$DST_NODE:rpool/data"
 
 # sync hdd
-#eval "$SYNCOID hdd root@$DST_NODE:hdd"
+eval "$SYNCOID hdd root@$DST_NODE:hdd"
 
 # load keys
 if $SSH "zfs list -H -o name,keystatus,keylocation | awk '\$2==\"unavailable\" && \$3!=\"prompt\" {print \$1}' | grep -q ."

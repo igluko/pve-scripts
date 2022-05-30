@@ -1,5 +1,6 @@
 #!/bin/bash
 SCRIPT=`realpath $0`
+SCRIPTPATH=`dirname $SCRIPT`
 
 if [[ $1 == "--add2cron" ]]; then
     TASK="* * * * * $SCRIPT"

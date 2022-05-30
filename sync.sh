@@ -36,8 +36,6 @@ if [ ! -f /usr/sbin/syncoid ]; then
     patch --batch /usr/sbin/syncoid $SCRIPTPATH/syncoid.patch
 fi
 
-exit
-
 # check jq is available
 if [ ! -f /usr/bin/jq ]; then
     echo "[WARN] file /usr/bin/jq not exists install jq"
@@ -45,13 +43,16 @@ if [ ! -f /usr/bin/jq ]; then
     apt install jq -y
 fi
 
-for STOR in $(pvesh get /nodes/`hostname`/storage --output=json-pretty | jq -r '.[] | select(.type=="zfspool") | .storage')
+for STOR in $(pvesh get /nodes/`hostname`/storage --output=json-pretty | jq -r '.[] | select(.type=="zfspool" and .active==1) | .storage')
 do
     ZFS_LOCAL=""
     ZFS_REMOTE=""
     ZFS_LOCAL=$(pvesh get /storage --output=json-pretty | jq -r ".[] | select(.storage==\"$STOR\") | .pool")
     ZFS_REMOTE=$($SSH pvesh get /storage --output=json-pretty | jq -r ".[] | select(.storage==\"$STOR\") | .pool")
     if [ "$ZFS_LOCAL" != "" ] && [ "$ZFS_REMOTE" != "" ]; then
+        echo "FROM $ZFS_LOCAL"
+        echo "TO   $ZFS_REMOTE"
+        echo "---"
         eval "$SYNCOID root@$DST_NODE:$ZFS_REMOTE $ZFS_LOCAL"
     else
         echo "ERROR: ZFS_LOCAL=$ZFS_LOCAL, ZFS_REMOTE=$ZFS_REMOTE"

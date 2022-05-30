@@ -43,7 +43,7 @@ if [ ! -f /usr/bin/jq ]; then
     apt install jq -y
 fi
 
-for STOR in $(pvesh get /nodes/`hostname`/storage --output=json-pretty | jq -r '.[] | select(.type=="zfspool" and .active==1) | .storage')
+for STOR in $($SSH pvesh get /nodes/\`hostname\`/storage --output=json-pretty | jq -r '.[] | select(.type=="zfspool" and .active==1) | .storage')
 do
     ZFS_LOCAL=""
     ZFS_REMOTE=""

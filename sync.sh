@@ -50,8 +50,8 @@ do
     ZFS_LOCAL=$(pvesh get /storage --output=json-pretty | jq -r ".[] | select(.storage==\"$STOR\") | .pool")
     ZFS_REMOTE=$($SSH pvesh get /storage --output=json-pretty | jq -r ".[] | select(.storage==\"$STOR\") | .pool")
     if [ "$ZFS_LOCAL" != "" ] && [ "$ZFS_REMOTE" != "" ]; then
-        echo "FROM $ZFS_LOCAL"
-        echo "TO   $ZFS_REMOTE"
+        echo "FROM $ZFS_REMOTE"
+        echo "TO   $ZFS_LOCAL"
         echo "---"
         eval "$SYNCOID root@$DST_NODE:$ZFS_REMOTE $ZFS_LOCAL"
     else

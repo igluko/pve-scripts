@@ -25,6 +25,10 @@ if [ $# -eq 1 ]; then
             echo "$ZFS_WO_LABEL"
             eval "/usr/sbin/zfs list -r -o name,sync:label -H | awk '\$2==\"-\" {print \$1}' | xargs -n1 /usr/sbin/zfs set sync:label=`hostname`"
         fi
+    elif [ $1 == "--show_labels" ]
+    then
+         eval "zfs list -r -o name,sync:label -H"
+    fi
     elif [ $1 == "--add_cron" ]
     then
         TASK="* * * * * $SCRIPT --add_labels 2>&1 | logger -t add_labels"

@@ -40,6 +40,7 @@ if [ $# -eq 1 ]; then
     else
         help
     fi
+    exit 0
 elif [ $# -ne 2 ]; then
     help
 fi

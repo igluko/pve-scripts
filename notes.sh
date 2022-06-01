@@ -4,7 +4,7 @@ SCRIPTPATH=`dirname $SCRIPT`
 
 if [[ $1 == "--add_cron" ]]; then
     TASK="* * * * * $SCRIPT"
-    if crontab -l 2>/dev/null | grep -q "$TASK"
+    if crontab -l 2>/dev/null | grep -F -q "$TASK"
     then 	
         echo "task already has been added to crontab"
     else

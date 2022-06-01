@@ -28,7 +28,6 @@ if [ $# -eq 1 ]; then
     elif [ $1 == "--show_labels" ]
     then
          eval "zfs list -r -o name,sync:label -H"
-    fi
     elif [ $1 == "--add_cron" ]
     then
         TASK="* * * * * $SCRIPT --add_labels 2>&1 | logger -t add_labels"

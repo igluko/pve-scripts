@@ -30,7 +30,7 @@ if [ $# -eq 1 ]; then
          eval "zfs list -r -o name,sync:label -H"
     elif [ $1 == "--add_cron" ]
     then
-        TASK="* * * * * $SCRIPT --add_labels 2>&1 | logger -t add_labels"
+        TASK="0 22 * * * $SCRIPT --add_labels 2>&1 | logger -t add_labels"
         if crontab -l 2>/dev/null | grep -q "$TASK"
         then 	
             echo "task already has been added to crontab"

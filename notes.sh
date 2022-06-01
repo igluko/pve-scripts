@@ -2,7 +2,7 @@
 SCRIPT=`realpath $0`
 SCRIPTPATH=`dirname $SCRIPT`
 
-if [[ $1 == "--add2cron" ]]; then
+if [[ $1 == "--add_cron" ]]; then
     TASK="* * * * * $SCRIPT"
     if crontab -l 2>/dev/null | grep -q "$TASK"
     then 	
@@ -15,7 +15,7 @@ fi
 function getMemFree(){
 running_vm=`/usr/sbin/qm list | grep running`
 running_mem=0
-if [ -n "$running_vm" ]; then
+if [[ -n "$running_vm" ]]; then
   running_mem=`echo "$running_vm" | awk '{print $4}' | paste -sd+ | awk '{printf "scale=0;(%s)/1024\n", ($1) }' | bc`
 fi
 

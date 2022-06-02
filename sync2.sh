@@ -48,7 +48,7 @@ fi
 
 DST_NODE=$1
 LABEL=$2
-SSH_OPT="BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q"
+SSH_OPT="BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 SSH="ssh -o $SSH_OPT root@$DST_NODE"
 SCP="scp -o $SSH_OPT"
 SYNCOID="/usr/sbin/syncoid --sshoption=\"$SSH_OPT\" --sendoptions=-wR --force-delete --exclude=\".*-[8-9][0-9][0-9]-disk-[0-9]+\""

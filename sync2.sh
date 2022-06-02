@@ -4,10 +4,10 @@ SCRIPTPATH=`dirname $SCRIPT`
 
 function help(){
     echo "Usages:" 
-    echo "  sync.sh --add_labels"
-    echo "  sync.sh --show_labels"
-    echo "  sync.sh --add_cron"
-    echo "  sync.sh 1.2.3.4 LABEL"
+    echo "  sync2.sh --add_labels"
+    echo "  sync2.sh --show_labels"
+    echo "  sync2.sh --add_cron"
+    echo "  sync2.sh 1.2.3.4 LABEL"
     exit 1
 }
 

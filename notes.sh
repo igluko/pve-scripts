@@ -33,7 +33,7 @@ function getMemFree(){
 function getSyncoidSnaps(){
     echo "#**Syncoid snapshots:**"
     echo "#"
-    /usr/sbin/zfs list -t snapshot -o sync:label,name  2>/dev/null | grep syncoid | awk '{printf "#%s \\\n" , $0}'
+    /usr/sbin/zfs list -t snapshot -o sync:label,name  2>/dev/null | grep syncoid | awk '{printf "#**%s** %s \\\n" , $1, $2}'
     echo "#**end**"
 }
 

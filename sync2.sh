@@ -11,38 +11,7 @@ function help(){
     exit 1
 }
 
-# print help
-if [ $# -eq 0 ]; then
-    help
-fi
-
-if [ $# -eq 1 ]; then
-    if [ $1 == "--add_labels" ]
-    then
-        ZFS_WO_LABEL=$(/usr/sbin/zfs list -r -o name,sync:label -H | awk '$2=="-" {print $1}')
-        if [ "$ZFS_WO_LABEL" != "" ]; then
-            echo "Add default label to:"
-            echo "=>"
-            echo "$ZFS_WO_LABEL"
-            eval "/usr/sbin/zfs list -r -o name,sync:label -H | awk '\$2==\"-\" {print \$1}' | xargs -n1 /usr/sbin/zfs set sync:label=`hostname`"
-        fi
-    elif [ $1 == "--show_labels" ]
-    then
-         eval "zfs list -r -o name,sync:label -H"
-    elif [ $1 == "--add_cron" ]
-    then
-        TASK="0 23 * * * $SCRIPT --add_labels 2>&1 | logger -t add_labels"
-        if crontab -l 2>/dev/null | grep -F -q "$TASK"
-        then 	
-            echo "task already has been added to crontab"
-        else
-            (crontab -l 2>/dev/null; echo "$TASK") | crontab -
-        fi
-    else
-        help
-    fi
-    exit 0
-elif [ $# -ne 2 ]; then
+if [ $# -ne 2 ]; then
     help
 fi
 

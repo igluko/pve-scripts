@@ -96,13 +96,11 @@ do
             echo "Add default label to:"
             echo "=>"
             echo "$ZFS_WO_LABEL"
-            exit
             for ZFS in $ZFS_WO_LABEL
             do
                 eval "$SSH 'zfs set sync:label=\$(hostname) $ZFS'"
             done
         fi
-        continue
         # replicate
         echo "FROM $ZFS_REMOTE"
         echo "TO   $ZFS_LOCAL"

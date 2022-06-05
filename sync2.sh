@@ -91,21 +91,23 @@ do
     ZFS_REMOTE=$($SSH pvesh get /storage --output=json-pretty | jq -r ".[] | select(.storage==\"$STOR\") | .pool")
     if [ "$ZFS_LOCAL" != "" ] && [ "$ZFS_REMOTE" != "" ]; then
         # add default label
-        ZFS_WO_LABEL=$($SSH "zfs list -r -o name,sync:label -H $ZFS_REMOTE | grep -v \"^$ZFS_REMOTE\$\" | awk '\$2==\"-\" {print \$1}'")
+        ZFS_WO_LABEL=$($SSH "zfs list -r -o name,sync:label -H $ZFS_REMOTE  | awk '\$2==\"-\" {print \$1}' | grep -v \"^$ZFS_REMOTE\$\"")
         if [ "$ZFS_WO_LABEL" != "" ]; then
             echo "Add default label to:"
             echo "=>"
             echo "$ZFS_WO_LABEL"
-            for ZFS in "$ZFS_WO_LABEL"
+            exit
+            for ZFS in $ZFS_WO_LABEL
             do
                 eval "$SSH 'zfs set sync:label=\$(hostname) $ZFS'"
             done
         fi
+        continue
         # replicate
         echo "FROM $ZFS_REMOTE"
         echo "TO   $ZFS_LOCAL"
         echo "---"
-        for ZFS in $($SSH "zfs list -r -o name,sync:label -H $ZFS_REMOTE | grep -v \"^$ZFS_REMOTE\$\" | awk '\$2==\"$LABEL\" {print \$1}' | awk -F  / '{print \$NF}'")
+        for ZFS in $($SSH "zfs list -r -o name,sync:label -H $ZFS_REMOTE | awk '\$2==\"$LABEL\" {print \$1}' | grep -v \"^$ZFS_REMOTE\$\" | awk -F  / '{print \$NF}'")
         do
             echo $ZFS
             eval "$SYNCOID root@$DST_NODE:$ZFS_REMOTE/$ZFS $ZFS_LOCAL/$ZFS"
@@ -114,7 +116,7 @@ do
         echo "ERROR: ZFS_LOCAL=$ZFS_LOCAL, ZFS_REMOTE=$ZFS_REMOTE"
     fi
 done 
-
+exit
 exit
 # sync configs
 eval  "$SCP -r root@$DST_NODE:/etc/pve/local/qemu-server/[1-7]* /etc/pve/local/qemu-server/ 2>/dev/null"
@@ -132,9 +134,9 @@ exit 0
 #-----------------------------------------------#
 # get labels
 eval "zfs list -r -o name,sync:label -H"
-# clear labels
-zfs list -r -o name -H | xargs -n1 zfs set sync:label=-
-# set default labels
-eval "zfs list -r -o name,sync:label -H | awk '\$2==\"-\" {print \$1}' | xargs -n1 zfs set sync:label=`hostname`"
+# clear labels  
+zfs inherit -r sync:label rpool
+# set default label
+zfs set sync:label=`hostname` rpool/data/vm-100-disk-0
 # set custom label
 zfs set sync:label=`hostname`-slow rpool/data/vm-100-disk-0

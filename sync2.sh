@@ -90,10 +90,22 @@ do
     ZFS_LOCAL=$(pvesh get /storage --output=json-pretty | jq -r ".[] | select(.storage==\"$STOR\") | .pool")
     ZFS_REMOTE=$($SSH pvesh get /storage --output=json-pretty | jq -r ".[] | select(.storage==\"$STOR\") | .pool")
     if [ "$ZFS_LOCAL" != "" ] && [ "$ZFS_REMOTE" != "" ]; then
+        # add default label
+        ZFS_WO_LABEL=$($SSH "zfs list -r -o name,sync:label -H $ZFS_REMOTE | grep -v \"^$ZFS_REMOTE\$\" | awk '\$2==\"-\" {print \$1}'")
+        if [ "$ZFS_WO_LABEL" != "" ]; then
+            echo "Add default label to:"
+            echo "=>"
+            echo "$ZFS_WO_LABEL"
+            for ZFS in "$ZFS_WO_LABEL"
+            do
+                eval "$SSH 'zfs set sync:label=\$(hostname) $ZFS'"
+            done
+        fi
+        # replicate
         echo "FROM $ZFS_REMOTE"
         echo "TO   $ZFS_LOCAL"
         echo "---"
-        for ZFS in $($SSH "zfs list -r -o name,sync:label -H $ZFS_REMOTE | awk '\$2==\"$LABEL\" {print \$1}' | grep -v \"^$ZFS_REMOTE\$\" | awk -F  / '{print \$NF}'")
+        for ZFS in $($SSH "zfs list -r -o name,sync:label -H $ZFS_REMOTE | grep -v \"^$ZFS_REMOTE\$\" | awk '\$2==\"$LABEL\" {print \$1}' | awk -F  / '{print \$NF}'")
         do
             echo $ZFS
             eval "$SYNCOID root@$DST_NODE:$ZFS_REMOTE/$ZFS $ZFS_LOCAL/$ZFS"
@@ -103,6 +115,7 @@ do
     fi
 done 
 
+exit
 # sync configs
 eval  "$SCP -r root@$DST_NODE:/etc/pve/local/qemu-server/[1-7]* /etc/pve/local/qemu-server/ 2>/dev/null"
 eval  "$SCP -r root@$DST_NODE:/etc/pve/local/lxc/[1-7]* /etc/pve/local/lxc/ 2>/dev/null"

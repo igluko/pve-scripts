@@ -20,7 +20,7 @@ LABEL=$2
 SSH_OPT="BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no"
 SSH="ssh -o $SSH_OPT root@$DST_NODE"
 SCP="scp -o $SSH_OPT"
-SYNCOID="/usr/sbin/syncoid --sshoption=\"$SSH_OPT\" --sendoptions=-wR --force-delete --exclude=\".*-[8-9][0-9][0-9]-disk-[0-9]+\""
+SYNCOID="/usr/sbin/syncoid --sshoption=\"$SSH_OPT\" --sendoptions=-wR --force-delete"
 
 # check syncoid is available
 if [ ! -f /usr/sbin/syncoid ]; then
@@ -76,18 +76,23 @@ do
         echo "---"
         for ZFS in $($SSH "zfs list -r -o name,sync:label -H $ZFS_REMOTE | awk '\$2==\"$LABEL\" {print \$1}' | grep -v \"^$ZFS_REMOTE\$\" | awk -F  / '{print \$NF}'")
         do
-            echo $ZFS
-            eval "$SYNCOID root@$DST_NODE:$ZFS_REMOTE/$ZFS $ZFS_LOCAL/$ZFS"
+            VMID=$(echo $ZFS | awk -F - '{print $2}')
+            echo "$VMID - $ZFS"
+            if (echo "$VMID" | grep -q [1-7][0-9][0-9])
+            then
+                # zfs
+                eval "$SYNCOID root@$DST_NODE:$ZFS_REMOTE/$ZFS $ZFS_LOCAL/$ZFS"
+                # config
+                eval "rsync --checksum --ignore-missing-args root@$DST_NODE:/etc/pve/local/qemu-server/$VMID.conf /etc/pve/local/qemu-server/"
+                eval "rsync --checksum --ignore-missing-args root@$DST_NODE:/etc/pve/local/lxc/$VMID.conf /etc/pve/local/lxc/"
+            else
+                echo "skip"
+            fi
         done
     else
         echo "ERROR: ZFS_LOCAL=$ZFS_LOCAL, ZFS_REMOTE=$ZFS_REMOTE"
     fi
 done 
-exit
-exit
-# sync configs
-eval  "$SCP -r root@$DST_NODE:/etc/pve/local/qemu-server/[1-7]* /etc/pve/local/qemu-server/ 2>/dev/null"
-eval  "$SCP -r root@$DST_NODE:/etc/pve/local/lxc/[1-7]* /etc/pve/local/lxc/ 2>/dev/null"
 
 # load keys
 for ZFS in $(zfs list -H -o name,keystatus,keylocation | awk '$2=="unavailable" && $3!="prompt" {print $1}')

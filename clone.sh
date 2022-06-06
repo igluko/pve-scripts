@@ -19,6 +19,19 @@ function checkError {
     fi
 }
 
+function checkYesNo {
+    while true; do
+    printf "${RED}"
+    read -p "$1? [y/n] " -n 1 -r
+    printf "${NC}\n"
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            return 0
+        elif [[ $REPLY =~ ^[Nn]$ ]]; then
+            return 1
+        fi
+    done
+}
+
 # Install pv
 eval "apt install pv -y"
 checkError "apt install pv -y"
@@ -85,18 +98,22 @@ done
 echo "$CONF_NEW" > /etc/pve/local/qemu-server/$VMID_NEW.conf
 checkError "save new conf"
 
-# Set new MAC address
-eval 'qm config $VMID_NEW | grep net.: | sed -E "s/(net[0-9]):(.*)=(..:..:..:..:..:..)(.*)/-\1\2\4/" | xargs -n2 qm set $VMID_NEW'
-checkError "Set new MAC address"
+if checkYesNo "Change MAC and UUIDs?"
+then
+    # Set new MAC address
+    eval 'qm config $VMID_NEW | grep net.: | sed -E "s/(net[0-9]):(.*)=(..:..:..:..:..:..)(.*)/-\1\2\4/" | xargs -n2 qm set $VMID_NEW'
+    checkError "Set new MAC address"
 
-# Set new VM Generation ID
-eval 'qm set $VMID_NEW --vmgenid 1'
-checkError "Set new VM Generation ID address"
+    # Set new VM Generation ID
+    eval 'qm set $VMID_NEW --vmgenid 1'
+    checkError "Set new VM Generation ID address"
 
-# Set new SMBIOS UUID
-UUID=$(cat /proc/sys/kernel/random/uuid)
-eval 'qm set $VMID_NEW --smbios1 uuid=$UUID'
-checkError "Set new SMBIOS UUID"
+    # Set new SMBIOS UUID
+    UUID=$(cat /proc/sys/kernel/random/uuid)
+    eval 'qm set $VMID_NEW --smbios1 uuid=$UUID'
+    checkError "Set new SMBIOS UUID"
+fi
+
 
 
 

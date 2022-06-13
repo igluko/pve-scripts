@@ -16,6 +16,16 @@ if [ $# -ne 1 ]; then
     help
 fi
 
+if [[ $1 == "--add_cron" ]]; then
+    TASK="30 9 * * * $SCRIPT"
+    if crontab -l 2>/dev/null | grep -F -q "$TASK"
+    then 	
+        echo "task already has been added to crontab"
+    else
+        (crontab -l 2>/dev/null; echo "$TASK") | crontab -
+    fi
+fi
+
 TIME=$(/usr/bin/date +%s -d "$1 hour ago")
 OLD_SNAPS=$(/usr/sbin/zfs list -H -p -t snapshot -o sync:label,name,creation | grep syncoid | awk -v time=$TIME '$3<time {printf "<b>#%s</b> %s %%0A" , $1, $2}')
 if [[ "$OLD_SNAPS" != "" ]]

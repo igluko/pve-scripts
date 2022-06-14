@@ -8,7 +8,7 @@ SCRIPTPATH=`dirname $SCRIPT`
 
 function help(){
     echo "Example1: search syncoid snaps older then 12 hours ago" 
-    echo "  sync-check.sh 12"
+    echo "      "
     echo "Example2: add to cron" 
     echo "  sync-check.sh --add_cron"
     exit 1
@@ -19,7 +19,7 @@ if [ $# -ne 1 ]; then
 fi
 
 if [[ $1 == "--add_cron" ]]; then
-    TASK="30 9 * * * $SCRIPT"
+    TASK="0 9 * * * $SCRIPT 1"
     if crontab -l 2>/dev/null | grep -F -q "$TASK"
     then 	
         echo "task already has been added to crontab"

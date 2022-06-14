@@ -38,5 +38,6 @@ TIME=$(date +%s -d "$1 hour ago")
 OLD_SNAPS=$(zfs list -H -p -t snapshot -o sync:label,name,creation | grep syncoid | awk -v time=$TIME '$3<time {printf "<b>#%s</b> %s %%0A" , $1, $2}')
 if [[ "$OLD_SNAPS" != "" ]]
 then
-    curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>Найдены старые снимки Syncoid</b>%0A $OLD_SNAPS" &>/dev/null
+    HEADER="Найдены старые снимки Syncoid на $(hostname)"
+    curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>$HEADER</b>%0A $OLD_SNAPS" &>/dev/null
 fi

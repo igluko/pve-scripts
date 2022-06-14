@@ -6,7 +6,10 @@
 SCRIPT=`realpath $0`
 SCRIPTPATH=`dirname $SCRIPT`
 
+# read envivoments
 source  /etc/environment
+# add binary folders to local path
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 function help(){
     echo "Example1: search syncoid snaps older then 12 hours ago" 
@@ -31,9 +34,9 @@ if [[ $1 == "--add_cron" ]]; then
     exit 0
 fi
 
-TIME=$(/usr/bin/date +%s -d "$1 hour ago")
-OLD_SNAPS=$(/usr/sbin/zfs list -H -p -t snapshot -o sync:label,name,creation | grep syncoid | awk -v time=$TIME '$3<time {printf "<b>#%s</b> %s %%0A" , $1, $2}')
+TIME=$(date +%s -d "$1 hour ago")
+OLD_SNAPS=$(zfs list -H -p -t snapshot -o sync:label,name,creation | grep syncoid | awk -v time=$TIME '$3<time {printf "<b>#%s</b> %s %%0A" , $1, $2}')
 if [[ "$OLD_SNAPS" != "" ]]
 then
-    /usr/bin/curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>Найдены старые снимки Syncoid</b>%0A $OLD_SNAPS" &>/dev/null
+    curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>Найдены старые снимки Syncoid</b>%0A $OLD_SNAPS" &>/dev/null
 fi

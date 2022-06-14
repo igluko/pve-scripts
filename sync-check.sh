@@ -6,6 +6,8 @@
 SCRIPT=`realpath $0`
 SCRIPTPATH=`dirname $SCRIPT`
 
+source  /etc/environment
+
 function help(){
     echo "Example1: search syncoid snaps older then 12 hours ago" 
     echo "  sync-check.sh 12"
@@ -26,6 +28,7 @@ if [[ $1 == "--add_cron" ]]; then
     else
         (crontab -l 2>/dev/null; echo "$TASK") | crontab -
     fi
+    exit 0
 fi
 
 TIME=$(/usr/bin/date +%s -d "$1 hour ago")

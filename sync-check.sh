@@ -8,7 +8,7 @@ SCRIPTPATH=`dirname $SCRIPT`
 
 function help(){
     echo "Example1: search syncoid snaps older then 12 hours ago" 
-    echo "      "
+    echo "  sync-check.sh 12"
     echo "Example2: add to cron" 
     echo "  sync-check.sh --add_cron"
     exit 1

@@ -16,7 +16,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 load-key() {
   local KEY=$1
-  if [ -n $KEY ]
+  if [[ -n "$KEY" ]]
   then
     echo $KEY
     yes $KEY | zfs load-key -a -L prompt

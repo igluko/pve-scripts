@@ -1,10 +1,15 @@
 #!/bin/bash
-# Helpful to read output when debugging
-set -x
+# set -x # Helpful to read output when debugging
+
 # Этот скрипт загружает ключи шифрованных ZFS датасетов и томов
-# На сервере должны быть настроены глобальные переменные окружения (/etc/environment): 
-# $TXT_ZFS_KEY=ZFS_KEY (Загрузить ключ из DNS записи ZFS_KEY) 
-# $URL_ZFS_KEY=https://domain.com/secret-link
+# 1) из аргумента во время вызова скрипта
+# 2) из DNS TXT
+# 3) из HTTPS URL
+
+# /etc/environment: 
+#   TXT_ZFS_KEY=ZFS_KEY # Загрузить ключ из DNS записи ZFS_KEY
+#        or
+#   URL_ZFS_KEY=https://domain.com/secret-link
 
 SCRIPT=`realpath $0`
 SCRIPTPATH=`dirname $SCRIPT`

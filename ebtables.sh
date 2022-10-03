@@ -3,16 +3,15 @@
 # set -x
 
 # This script prevents Hetzner Abuse Message : MAC-Errors
+
 function helpEnv {
     echo "Please set variables in /etc/environment"
     echo "Examples:"
     echo "  EBTABLES=enp7s0,00:50:56:00:CD:33,00:50:56:00:CD:34"
 }
 
-function readEnv {
-    # read envivoments
-    source  /etc/environment
-}
+# read envivoments
+source  /etc/environment
 
 SCRIPT=`realpath $0`
 SCRIPTPATH=`dirname $SCRIPT`
@@ -28,8 +27,7 @@ OK="${GREEN} ok ${NC}"
 FAIL="${RED}fail${NC}"
 WARN="${ORANGE}warn${NC}"
 
-function 3party {
-    # install 3 party software
+function install-inotify {
     if ! dpkg -s inotify-tools >/dev/null ; then
         printf "[$WARN] inotify-tools not installed\n"
         apt update 
@@ -53,18 +51,18 @@ function run {
 
 function checkVar {
     if [[ -n "${!1}" ]]; then
-        printf "[$OK] "${1}" => "${!1}" \n"
+        printf "[$OK] "\$${1}" == "${!1}" \n"
     else
-        printf "[$FAIL] "${1}" is empty \n" >&2
+        printf "[$FAIL] "\$${1}" == \n" >&2
         exit 1
     fi
 }
 
 function checkEnv {
     if [[ -n "${!1}" ]]; then
-        printf "[$OK] "${1}" => "${!1}" \n"
+        printf "[$OK] "\$${1}" == "${!1}" \n"
     else
-        printf "[$FAIL] "${1}" is empty \n" >&2
+        printf "[$FAIL] "\$${1}" == \n" >&2
         helpEnv >&2
         exit 1
     fi
@@ -81,21 +79,21 @@ function cron {
 }
 
 function main {
-    run "readEnv"
+    # read envivoments
+    source  /etc/environment
 
-    run "3party"
+    install-inotify
 
     checkEnv EBTABLES
 
-    IFACE=$(echo $EBTABLES | cut -d, -f1)
+    IFACE=$(echo $EBTABLES | cut -d , -f 1)
     checkVar IFACE
 
-    MAC=$(echo $EBTABLES | cut -d, -f2-)
+    MAC=$(echo $EBTABLES | cut -s -d , -f 2-)
     checkVar MAC
 
     run "ebtables -F"
     run "ebtables -I FORWARD -o $IFACE -p IPv4 --among-src ! $MAC --log-level info --log-prefix MAC-FLOOD-F --log-ip -j DROP"
-    run "ebtables -L"
     
     run "cron"
 }

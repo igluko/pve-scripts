@@ -6,7 +6,7 @@
 
 function helpEnv {
     echo "Please set variables in /etc/environment"
-    echo "Examples:"
+    echo "Example:"
     echo "  EBTABLES=enp7s0,00:50:56:00:CD:33,00:50:56:00:CD:34"
 }
 

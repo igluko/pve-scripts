@@ -9,10 +9,13 @@ function helpEnv {
     echo "  EBTABLES=enp7s0,00:50:56:00:CD:33,00:50:56:00:CD:34"
 }
 
+function readEnv {
+    # read envivoments
+    source  /etc/environment
+}
+
 SCRIPT=`realpath $0`
 SCRIPTPATH=`dirname $SCRIPT`
-# read envivoments
-source  /etc/environment
 # add binary folders to local path
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
@@ -24,6 +27,15 @@ NC='\033[0m' # No Color
 OK="${GREEN} ok ${NC}"
 FAIL="${RED}fail${NC}"
 WARN="${ORANGE}warn${NC}"
+
+function 3party {
+    # install 3 party software
+    if ! dpkg -s inotify-tools >/dev/null ; then
+        printf "[$WARN] inotify-tools not installed\n"
+        apt update 
+        apt install inotify-tools -y
+    fi
+}
 
 function checkError {
     if [[ "$?" -eq 0 ]]; then
@@ -69,6 +81,10 @@ function cron {
 }
 
 function main {
+    run "readEnv"
+
+    run "3party"
+
     checkEnv EBTABLES
 
     IFACE=$(echo $EBTABLES | cut -d, -f1)
@@ -89,5 +105,8 @@ if [ -t 1 ] ; then
     main
 else
     main >/dev/null
+    while inotifywait -q -e close_write /etc/environment; do
+        main >/dev/null
+    done
 fi
 

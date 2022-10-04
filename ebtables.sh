@@ -73,6 +73,11 @@ function main {
 
 # Setup if interacive mode  Suppress output if non-interacive mode
 if [ -t 1 ] ; then
+    # make sure that variable is set
+    if [[ ! -v EBTABLES ]];
+    then
+        EBTABLES=""
+    fi
     echo "Please input config string (example: enp7s0,00:50:56:00:CD:33,00:50:56:00:CD:34)"
     read -e -p "> " -i "${EBTABLES}" EBTABLES
     save EBTABLES "/etc/environment"

@@ -61,13 +61,13 @@ function main {
     IFACE=$(echo $EBTABLES | cut --delimiter ',' --fields 1)
     MAC=$(echo $EBTABLES | cut --delimiter ',' --only-delimited --fields 2-)
     
-    run "ebtables -t filter -F"
+    run "ebtables -F FORWARD"
 
     if [[ -n "$MAC" ]]
     then
-        run "ebtables -t filter -I FORWARD -o $IFACE --among-src ! $MAC --log-level info --log-prefix MAC-FLOOD-F --log-ip -j DROP"
+        run "ebtables -I FORWARD -o $IFACE --among-src ! $MAC --log-level info --log-prefix MAC-FLOOD-F --log-ip -j DROP"
     else
-        run "ebtables -t filter -I FORWARD -o $IFACE --log-level info --log-prefix MAC-FLOOD-F --log-ip -j DROP"
+        run "ebtables -I FORWARD -o $IFACE --log-level info --log-prefix MAC-FLOOD-F --log-ip -j DROP"
     fi
 }
 

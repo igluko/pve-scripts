@@ -109,3 +109,16 @@ zfs snapshot $VOL@$SNAP
 VOL_NEW=$(echo $VOL | sed "s/-$VMID-disk/-$VMID_NEW-disk/" -)
 # send snapshot
 eval "zfs send -c $VOL@$SNAP | pv | zfs recv $VOL_NEW"
+
+
+# inotify
+function install-inotify {
+    if ! dpkg -s inotify-tools >/dev/null ; then
+        printf "[$WARN] inotify-tools not installed\n"
+        apt update 
+        apt install inotify-tools -y
+    fi
+}
+while inotifywait -q -e close_write /etc/environment; do
+    main >/dev/null
+done

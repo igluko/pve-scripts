@@ -6,7 +6,7 @@
 #-no_tg - не слать сообщение в Telegram (chat id и token бота берутся из системных переменных TG_TOKEN и TG_CHAT)
 #-add_cron - добавит скрипт в cron на ежедневное выполнение в 8:00 с параметрами -t 8 -silent -skip_id_from 800
 
-import sys, time, socket, os
+import sys, time, socket, os, subprocess
 try:
     import pip
 except ModuleNotFoundError:
@@ -139,13 +139,27 @@ def check_vm_backups(vms, backups_short):
     vms_status.append({'name': socket.gethostname(), 'bad_vm': bad_vm, 'good_vm': good_vm})
     return(vms_status)
 
+# Проверка, есть ли запущенный процесс бекапа
+def check_runing_jobs():
+    cmd ='cat /var/log/pve/tasks/active'
+    cmd2 = ['awk', '-v', 'st=0', '$2==st']
+    cat = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
+    grep = subprocess.Popen(('grep', 'vzdump'), stdout=subprocess.PIPE, stdin=cat.stdout)
+    output = subprocess.check_output(cmd2, stdin=grep.stdout)
+    return(output.decode('utf-8'))
+
+
 # Вывод результатов
-def print_status(vms_status, silent):
-    bad_msg = ""
+def print_status(vms_status, silent, bad_msg = ""):
     for mv_status in vms_status:
         if not silent:
             print(p_yellow(mv_status['name']+':'))
-        bad_msg = '<b>'+mv_status['name']+':'+'</b>'+'\n'
+        if bad_msg == '':
+            bad_msg = '<b>'+mv_status['name']+':'+'</b>'+'\n'
+        else:
+            if not silent:
+                 print(p_red('\nRunning backup job:\n'+bad_msg))
+            bad_msg = '<b>'+mv_status['name']+':'+'</b>'+'\nRunning backup job:\n'+bad_msg+'\n'
         for vmid in mv_status['good_vm']:
             if not silent:
                 print(str(vmid) + ' | ' + p_green('backup OK'))
@@ -173,6 +187,6 @@ storage = get_pbs_stor(proxmox)
 backups_short = get_backup_list(storage, delta_time)
 vms = get_vm_ids(proxmox, skip_id_from)
 vms_status = check_vm_backups(vms, backups_short)
-msg = print_status(vms_status, silent)
+msg = print_status(vms_status, silent, check_runing_jobs())
 if tg:
     send_tg(msg)

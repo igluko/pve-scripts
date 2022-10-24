@@ -1,4 +1,8 @@
 #!/usr/bin/python3
+
+#Как пользоватся:
+#Нужно казать начиная с какого vmid нужно отключить бекап у дисков -disable_id_from <vmid>
+
 import sys, time, socket, os
 try:
     import pip

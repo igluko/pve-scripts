@@ -49,7 +49,7 @@ function save {
     local VALUE="$(echo ${!1} | xargs)"
     local FILE="${2}"
 
-    if grep -q ^${VARIABLE}= $FILE
+    if grep -q ^${VARIABLE}= $FILE 2>/dev/null
     then
         eval "sed -i -E 's/${VARIABLE}=.*/${VARIABLE}=\"${VALUE}\"/' $FILE"
     else

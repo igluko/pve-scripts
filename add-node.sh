@@ -247,7 +247,7 @@ function 2-step {
     ${SSH} "pvesm set local-zfs --blocksize 16k"
     ${SSH} "echo 10779361280 >> /sys/module/zfs/parameters/zfs_arc_sys_free"
 
-    local FILE="/tmp/passphrase"
+    local FILE="/etc/modprobe.d/zfs.conf"
     ${SSH} "echo \"options zfs zfs_arc_sys_free=10779361280\" > ${FILE}"
 
     if ! $SSH "grep \"options zfs zfs_arc_sys_free=10779361280\" ${FILE}"

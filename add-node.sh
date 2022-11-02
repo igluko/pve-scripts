@@ -160,6 +160,8 @@ function 1-step {
 
 function 2-step {
     update "DST_HOSTNAME"
+
+    
 }
 
 # Setup if interacive mode  Suppress output if non-interacive mode

@@ -1,0 +1,14 @@
+737c737
+<     my $cmd = ['zfs', 'send', '-Rpv'];
+---
+>     my $cmd = ['zfs', 'send', '-Rpvw'];
+792c792,798
+< 
+---
+> 	my $msg = '';
+>     my $output = sub { $msg .= "$_[0]" };
+>     run_command(['zfs', 'get', '-Ho', 'value', 'keystatus', $zfspath], outfunc => $output);
+> 	if ($msg eq "unavailable") {
+> 		eval { run_command(['zfs', 'set', 'keylocation=file:///tmp/passphrase', $zfspath]) };
+> 		eval { run_command(['zfs', 'load-key', $zfspath]) };
+> 	}

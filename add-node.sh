@@ -48,7 +48,12 @@ function run {
 # read envivoments from file
 function load {
     local FILE="${1}"
-    source "${FILE}"
+    if [[ -f  "${FILE}" ]]
+    then 
+        source "${FILE}"
+    else
+        touch "${FILE}"
+    fi
 }
 
 function save {
@@ -68,7 +73,6 @@ function save {
 # echo "Please input destination XXX"
 function update {
     local VARIABLE="${1}"
-    local VALUE="$(echo ${!1} | xargs)"
 
     echo "Please input ${VARIABLE}"
 
@@ -77,11 +81,17 @@ function update {
         eval ${VARIABLE}=""
     fi
 
+    local VALUE="$(echo ${!1} | xargs)"
+
     read -e -p "> " -i "${VALUE}" ${VARIABLE}
     save ${VARIABLE} ".env"
+    # echo "$VARIABLE is $VALUE"
 }
 
 function 1-step {
+    printf "${ORANGE}"
+    echo "Start 2 step"
+    printf "${NC}"
 
     # 0 BIOS
     echo "Please check BIOS"
@@ -96,7 +106,7 @@ function 1-step {
     # ID_NET_NAME_PATH=$($SSH "udevadm test /sys/class/net/eth0 2>/dev/null | grep ID_NET_NAME_PATH | cut -s -d = -f 2-")
     # echo "$ID_NET_NAME_PATH"
     printf "${WARN} " 
-    echo "IP = ${DST_HOST}"
+    echo "IP = ${DST_IP}"
     # printf "${WARN} " 
     # echo "ID_NET_NAME_PATH = ${ID_NET_NAME_PATH}"
 
@@ -108,7 +118,7 @@ function 1-step {
     $SSH "printf \"change vnc password\n%s\n\" ${VNC_PASSWORD} | qemu-system-x86_64 -enable-kvm -smp 4 -m 4096 -boot once=d -cdrom ./proxmox-ve_7.2-1.iso -drive file=/dev/nvme0n1,format=raw,cache=none,index=0,media=disk -drive file=/dev/nvme1n1,format=raw,cache=none,index=1,media=disk -vnc 0.0.0.0:0,password -monitor stdio" >/dev/null &
    
     echo "Please open VNC console, install PVE and press Next"
-    read -e -p "> " -i "Next" DST_HOST
+    read -e -p "> " -i "Next"
     eval $SSH "pkill qemu-system-x86 || true"
 
     $SSH zpool version
@@ -155,30 +165,125 @@ function 1-step {
     printf "${GREEN}"
     echo "Proxmox will be enabled at this link in 2 minutes"
     printf "${NC}"
-    printf '\e]8;;https://'${DST_HOST}':8006\e\\https://'${DST_HOST}':8006\e]8;;\e\\\n' 
+    printf '\e]8;;https://'${DST_IP}':8006\e\\https://'${DST_IP}':8006\e]8;;\e\\\n' 
 }
 
 function 2-step {
-    update "DST_HOSTNAME"
+    printf "${ORANGE}"
+    echo "Start 2 step"
+    printf "${NC}"
 
-    
+    DST_HOSTNAME=$(${SSH} hostname)
+
+    # Шаг 2 - firewall
+
+    local FILE="/etc/pve/firewall/cluster.fw"
+    if ! grep ${DST_IP} ${FILE}
+    then
+        echo "IN ACCEPT -source ${DST_IP} -log nolog # ${DST_HOSTNAME}" >> ${FILE}
+    fi
+
+    if ${SSH} [[ -f ${FILE} ]]
+    then
+        ${SSH} "mkdir -p /etc/pve/firewall"
+    fi
+
+    cat ${FILE} | ${SSH} "cat > ${FILE}"
+
+    # Шаг 3 - документация
+
+    ${SSH} "ip addr"
+    ${SSH} "cat /sys/class/block/*/device/{model,vendor} 2>/dev/null ; true"
+    ${SSH} "cat /sys/devices/virtual/dmi/id/board_{vendor,name} 2>/dev/null ; true"
+    ${SSH} "udevadm test /sys/class/net/eth0 2>/dev/null | grep ID_NET_NAME_ ; true"
+
+    echo "Please update Documentation"
+    read -e -p "> " -i "ok"
+
+    # Шаг 4 - hosts
+    local FILE="/etc/hosts"
+    if ! grep ${DST_IP} ${FILE}
+    then
+        echo "${DST_IP} ${DST_HOSTNAME}.local ${DST_HOSTNAME}" >> ${FILE}
+    fi
+
+    cat ${FILE} | ${SSH} "cat > ${FILE}"
+
+    # Шаг 5 - Отображать имя хоста во вкладке
+    local FILE=".bashrc"
+    if ! $SSH "grep \"If this is an xterm set the title to host:dir\" ${FILE}"
+    then
+        cat "${SCRIPTPATH}/${FILE}" | ${SSH} "cat >> ${FILE}"
+    fi
+
+    # Шаг 7 - Лицензии и обновления
+    echo "Please install PVE Licence"
+    read -e -p "> " -i "ok"
+
+    #  Меняем RU репозитории на обычные, RU еле шевелятся:
+    $SSH "sed -i s/\.ru\./\./ /etc/apt/sources.list"
+
+    # В заключении обновляем пакеты на сервере:
+    $SSH "apt update ; apt dist-upgrade -y"
+
+    # Включаем новые возможности zfs, если таковые есть
+    $SSH "zpool upgrade rpool"
+
+    # Шаг 9 - Шифрование данных кластера
+
+    if ! ${SSH} "zfs get encryption -p -H rpool/data | grep -q on"
+    then
+        #Создадим файл с ключом шифрования в папке /tmp
+        local FILE="/tmp/passphrase"
+        cat ${FILE} | ${SSH} "cat > ${FILE}"
+        $SSH "zfs destroy rpool/data; true"
+        $SSH "zfs create -o encryption=on -o keyformat=passphrase -o keylocation=file:///tmp/passphrase rpool/data"
+    fi
+
+    # Шаг 8 - Настройка ZFS
+    ${SSH} "zpool set autotrim=on rpool"
+    ${SSH} "zfs set atime=off rpool"
+    ${SSH} "zfs set compression=zstd-fast rpool"
+    ${SSH} "pvesm set local-zfs --blocksize 16k"
+    ${SSH} "echo 10779361280 >> /sys/module/zfs/parameters/zfs_arc_sys_free"
+
+    local FILE="/tmp/passphrase"
+    ${SSH} "echo \"options zfs zfs_arc_sys_free=10779361280\" > ${FILE}"
+
+    if ! $SSH "grep \"options zfs zfs_arc_sys_free=10779361280\" ${FILE}"
+    then
+        ${SSH} "update-initramfs -u"
+    fi
+    ${SSH} "zfs set primarycache=metadata rpool"
+
+
+
+    # # Шаг X - Download virtio-win.iso
+    # # Latest:
+    # ${SSH}  "wget -N --content-disposition --directory-prefix=/var/lib/vz/template/iso/ https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"
+    # # Latest for windows 7:
+    # ${SSH}  "wget -N -O /var/lib/vz/template/iso/virtio-win-0.1.173-win7.iso https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.173-9/virtio-win-0.1.173.iso"
+
+    # Шаг 11 - добавление ноды в кластер
+    echo "Please take snapshot on ALL nodes, and add node to cluster"
+    read -e -p "> " -i "ok"
+    #$SSH "zfs snapshot -r rpool@before_cluster-${date +%s}"
+
+    exit
+    # Шаг 13.1 - Патч Proxmox для работы с шифрованным ZFS и pve-zsync
+    ${SSH} "apt install -y patch"
+    ${SSH} "patch /usr/share/perl5/PVE/Storage/ZFSPoolPlugin.pm ZFSPoolPlugin.pm.patch"
+
 }
 
 # Setup if interacive mode  Suppress output if non-interacive mode
 if [ -t 1 ] ; then
     load "${SCRIPTPATH}/.env"
 
-    # make sure that variable is set
-    if [[ ! -v DST_HOST ]];
-    then
-        DST_HOST=""
-    fi
-    echo "Please input destination IP"
-    read -e -p "> " -i "${DST_HOST}" DST_HOST
-    save DST_HOST ".env"
+    update "DST_IP"
 
     DST_USER="root"
-    DST="${DST_USER}@${DST_HOST}"
+    DST="${DST_USER}@${DST_IP}"
     SSH="ssh -C ${DST}"
 
     ssh-copy-id ${DST}

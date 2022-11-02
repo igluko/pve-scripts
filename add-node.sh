@@ -183,7 +183,7 @@ function 2-step {
         echo "IN ACCEPT -source ${DST_IP} -log nolog # ${DST_HOSTNAME}" >> ${FILE}
     fi
 
-    if ${SSH} [[ -f ${FILE} ]]
+    if ! ${SSH} [[ -f ${FILE} ]]
     then
         ${SSH} "mkdir -p /etc/pve/firewall"
     fi

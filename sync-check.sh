@@ -35,7 +35,7 @@ if [[ $1 == "--add_cron" ]]; then
 fi
 
 TIME=$(date +%s -d "$1 hour ago")
-OLD_SNAPS=$(zfs list -H -p -t snapshot -o sync:label,name,creation | grep syncoid | awk -v time=$TIME '$3<time {printf "<b>#%s</b> %s %%0A" , $1, $2}')
+OLD_SNAPS=$(zfs list -H -p -t snapshot -o sync:label,name,creation | grep 'syncoid\|replicate' | awk -v time=$TIME '$3<time {printf "<b>#%s</b> %s %%0A" , $1, $2}')
 if [[ "$OLD_SNAPS" != "" ]]
 then
     HEADER="Найдены старые снимки Syncoid на $(hostname)"

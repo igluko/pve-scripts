@@ -172,7 +172,7 @@ function 2-step {
     printf "${ORANGE}"
     echo "Start 2 step"
     printf "${NC}"
-
+    
     DST_HOSTNAME=$(${SSH} hostname)
 
     # Шаг 2 - firewall
@@ -284,10 +284,19 @@ if [ -t 1 ] ; then
 
     DST_USER="root"
     DST="${DST_USER}@${DST_IP}"
-    SSH="ssh -C ${DST}"
+    SSH="ssh -C -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${DST}"
 
-    ssh-copy-id ${DST}
 
+    # copy ssh pub key to autorized
+    FILE='/root/.ssh/id_rsa.pub'
+    if [ -f $FILE ]; then
+        ssh-copy-id -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${FILE} ${DST}
+    else
+        echo "$FILE not exist"
+        exit 1
+    fi
+
+    # check step
     if ! $SSH "[[ -d /etc/pve ]]"
     then
         1-step
@@ -295,8 +304,8 @@ if [ -t 1 ] ; then
         2-step
     fi
 
-    # main
+
     #run "cron-update"
 else
-    main >/dev/null
+    echo "This script must be running in interactive mode"
 fi

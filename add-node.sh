@@ -5,7 +5,7 @@
 ###
 
 # Helpful to read output when debugging
-set -x
+# set -x
 
 #https://stackoverflow.com/questions/5947742/how-to-change-the-output-color-of-echo-in-linux
 RED='\033[0;31m'

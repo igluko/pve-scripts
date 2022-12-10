@@ -285,13 +285,13 @@ if [ -t 1 ] ; then
 
     DST_USER="root"
     DST="${DST_USER}@${DST_IP}"
-    SSH="ssh -C -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${DST}"
+    SSH="ssh -C -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${DST}"
 
 
     # copy ssh pub key to autorized
     FILE='/root/.ssh/id_rsa.pub'
     if [ -f $FILE ]; then
-        ssh-copy-id -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${FILE} ${DST}
+        ssh-copy-id -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${FILE} ${DST}
     else
         echo "$FILE not exist"
         exit 1

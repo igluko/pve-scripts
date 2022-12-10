@@ -5,7 +5,7 @@
 ###
 
 # Helpful to read output when debugging
-# set -x
+set -x
 
 #https://stackoverflow.com/questions/5947742/how-to-change-the-output-color-of-echo-in-linux
 RED='\033[0;31m'
@@ -232,7 +232,7 @@ function 2-step {
 
     # Шаг 9 - Шифрование данных кластера
 
-    if ! ${SSH} "zfs get encryption -p -H rpool/data | grep -q on"
+    if ${SSH} "zfs get encryption -p -H rpool/data | grep -q off"
     then
         #Создадим файл с ключом шифрования в папке /tmp
         local FILE="/tmp/passphrase"

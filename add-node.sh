@@ -101,7 +101,8 @@ function 1-step {
     echo "Please activate RescueCD in Hetzner Robot panel and Execute an automatic hardware reset"
     read -e -p "> " -i "ok"
 
-    eval ${SSH} "wget -N http://download.proxmox.com/iso/proxmox-ve_7.2-1.iso"
+    ISO="proxmox-ve_7.3-1.iso"
+    eval ${SSH} "wget -N http://download.proxmox.com/iso/$ISO"
 
     # ID_NET_NAME_PATH=$($SSH "udevadm test /sys/class/net/eth0 2>/dev/null | grep ID_NET_NAME_PATH | cut -s -d = -f 2-")
     # echo "$ID_NET_NAME_PATH"
@@ -115,7 +116,7 @@ function 1-step {
     printf "${WARN} VNC Password is ${GREEN}${VNC_PASSWORD}${NC}\n"
 
     eval $SSH "pkill qemu-system-x86 || true"
-    $SSH "printf \"change vnc password\n%s\n\" ${VNC_PASSWORD} | qemu-system-x86_64 -enable-kvm -smp 4 -m 4096 -boot once=d -cdrom ./proxmox-ve_7.2-1.iso -drive file=/dev/nvme0n1,format=raw,cache=none,index=0,media=disk -drive file=/dev/nvme1n1,format=raw,cache=none,index=1,media=disk -vnc 0.0.0.0:0,password -monitor stdio" >/dev/null &
+    $SSH "printf \"change vnc password\n%s\n\" ${VNC_PASSWORD} | qemu-system-x86_64 -enable-kvm -smp 4 -m 4096 -boot once=d -cdrom ./$ISO -drive file=/dev/nvme0n1,format=raw,cache=none,index=0,media=disk -drive file=/dev/nvme1n1,format=raw,cache=none,index=1,media=disk -vnc 0.0.0.0:0,password -monitor stdio" >/dev/null &
    
     echo "Please open VNC console, install PVE and press Next"
     read -e -p "> " -i "Next"

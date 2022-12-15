@@ -38,8 +38,8 @@ apt-install fio
 apt-install jq
 apt-install fdisk 
 
-DISKS="nvme0n1 nvme1n1"
-PART="p4"
+DISKS="nvme2n1"
+PART="p1"
 
 for DISK in $DISKS
 do
@@ -59,8 +59,10 @@ do
     fi
     echo
     hostname
-    cat /sys/class/block/nvme0n1/device/model
-    cat /sys/class/block/nvme0n1/device/serial
+    cat /sys/class/block/${DISKS}/device/model
+    cat /sys/class/block/${DISK}/device/serial
+    cat /sys/devices/virtual/dmi/id/board_{vendor,name}
+
 
 
     function fio-run {

@@ -67,13 +67,13 @@ do
         fio --filename=/dev/${DISK}${PART} --group_reporting --output-format=json --runtime=60 --size=50G --ioengine=libaio --direct=1 --stonewall $*
     }
     printf "\n${GREEN}Заголовки:${NC}\n"
-    echo -e "Seq-1m-Q8T1-Read \t bytes"
-    echo -e "Seq-1m-Q8T1-Write \t bytes"
-    echo -e "Seq-1m-Q1T1-Read \t bytes"
-    echo -e "Seq-1m-Q1T1-Write \t bytes"
+    echo -e "Seq-1m-Q8T1-Read \t KB/sec"
+    echo -e "Seq-1m-Q8T1-Write \t KB/sec"
+    echo -e "Seq-1m-Q1T1-Read \t KB/sec"
+    echo -e "Seq-1m-Q1T1-Write \t KB/sec"
 
-    echo -e "Seq-128k-Q32T1-Read \t bytes"
-    echo -e "Seq-128k-Q32T1-Write \t bytes"
+    echo -e "Seq-128k-Q32T1-Read \t KB/sec"
+    echo -e "Seq-128k-Q32T1-Write \t KB/sec"
 
     echo -e "Rnd-4k-Q32T16-Read \t iops"
     echo -e "Rnd-4k-Q32T16-Write \t iops"
@@ -83,13 +83,13 @@ do
     echo -e "Rnd-4k-Q1T1-Write \t iops"
 
     printf "\n${GREEN}Результаты:${NC}\n"
-    fio-run --name=Seq-1m-Q8T1-Read --rw=read --bs=1m --iodepth=8 | jq .jobs[0].read.io_bytes
-    fio-run --name=Seq-1m-Q8T1-Write --rw=write --bs=1m --iodepth=8 | jq .jobs[0].write.io_bytes
-    fio-run --name=Seq-1m-Q1T1-Read --rw=read --bs=1m --iodepth=1 | jq .jobs[0].read.io_bytes
-    fio-run --name=Seq-1m-Q1T1-Write --rw=write --bs=1m --iodepth=1 | jq .jobs[0].write.io_bytes
+    fio-run --name=Seq-1m-Q8T1-Read --rw=read --bs=1m --iodepth=8 | jq .jobs[0].read.bw
+    fio-run --name=Seq-1m-Q8T1-Write --rw=write --bs=1m --iodepth=8 | jq .jobs[0].write.bw
+    fio-run --name=Seq-1m-Q1T1-Read --rw=read --bs=1m --iodepth=1 | jq .jobs[0].read.bw
+    fio-run --name=Seq-1m-Q1T1-Write --rw=write --bs=1m --iodepth=1 | jq .jobs[0].write.bw
 
-    fio-run --name=Seq-128k-Q32T1-Read --rw=read --bs=128k --iodepth=32 | jq .jobs[0].read.io_bytes
-    fio-run --name=Seq-128k-Q32T1-Write --rw=write --bs=128k --iodepth=32 | jq .jobs[0].write.io_bytes
+    fio-run --name=Seq-128k-Q32T1-Read --rw=read --bs=128k --iodepth=32 | jq .jobs[0].read.bw
+    fio-run --name=Seq-128k-Q32T1-Write --rw=write --bs=128k --iodepth=32 | jq .jobs[0].write.bw
 
     fio-run --name=Rnd-4k-Q32T16-Read --rw=read --bs=4k --iodepth=32 --numjobs=16 | jq .jobs[0].read.iops | sed 's/\..*//'
     fio-run --name=Rnd-4k-Q32T16-Write --rw=write --bs=4k --iodepth=32 --numjobs=16 | jq .jobs[0].write.iops | sed 's/\..*//'

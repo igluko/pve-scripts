@@ -64,7 +64,7 @@ do
 
 
     function fio-run {
-        fio --filename=/dev/${DISK}${PART} --group_reporting --output-format=json --runtime=1 --size=50G --ioengine=libaio --direct=1 --stonewall $*
+        fio --filename=/dev/${DISK}${PART} --group_reporting --output-format=json --runtime=60 --size=50G --ioengine=libaio --direct=1 --stonewall $*
     }
     printf "\n${GREEN}Заголовки:${NC}\n"
     echo -e "Seq-1m-Q8T1-Read \t bytes"

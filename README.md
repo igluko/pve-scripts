@@ -13,13 +13,20 @@ How it works:
 - Then waits for VM to shut down
 - Then starts up another VM
 
-Here is a simple flow chart:
+
+
+## fio.sh
 
 ```mermaid
-graph TD;
-    A-->B;
-    A-->C;
-    B-->D;
-    C-->D;
+flowchart TB
+    INSTALL[install fio jq fdisk] --> SET_DISKS[DISKS = nvme0n1 nvme1n1]
+    SET_DISKS --> SET_PART[PART=p4]
+    SET_PART --> IS_PART{Is partition p4 exists?}
+    subgraph MAIN_LOOP [for each disk]
+        IS_PART -- NO --> CREATE_PART[Create partition p4]
+        CREATE_PART --> ECHO_INFO[Show disk info]
+        IS_PART -- YES --> ECHO_INFO[Show disk info]
+        ECHO_INFO --> ECHO_HEADERS[Show all headers]
+        ECHO_HEADERS --> RUN_TESTS[Run all tests]
+    end
 ```
-

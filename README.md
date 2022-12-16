@@ -20,8 +20,7 @@ How it works:
 ```mermaid
 flowchart TB
     INSTALL[install fio jq fdisk] --> SET_DISKS[DISKS = nvme0n1 nvme1n1]
-    SET_DISKS --> SET_PART[PART=p4]
-    SET_PART --> IS_PART{Is partition p4 exists?}
+    SET_DISKS --> IS_PART{Is partition p4 exists?}
     subgraph MAIN_LOOP [for each disk]
         IS_PART -- NO --> CREATE_PART[Create partition p4]
         CREATE_PART --> ECHO_INFO[Show disk info]

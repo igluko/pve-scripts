@@ -82,14 +82,14 @@ do
             echo          # Last sector (Accept default: varies)
             echo w        # Write changes
         ) | fdisk /dev/${DISK}
-    fi
 
-    # Снова проверяем, что раздел существует на диске
-    printf "\n${ORANGE}Снова проверяем, что раздел /dev/${DISK}p${PART} существует${NC}\n"
-    if ! lsblk | grep -q ${DISK}p${PART}
-    then
-        printf "${RED}Ошибка: раздел /dev/${DISK}p${PART} не найден.${NC}\n"
-        continue
+        # Снова проверяем, что раздел существует на диске
+        printf "\n${ORANGE}Снова проверяем, что раздел /dev/${DISK}p${PART} существует${NC}\n"
+        if ! lsblk | grep -q ${DISK}p${PART}
+        then
+            printf "${RED}Ошибка: не удалось создать раздел /dev/${DISK}p${PART}${NC}\n"
+            continue
+        fi
     fi
 
     # Выводим информацию о диске и материнской плате

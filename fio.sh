@@ -99,7 +99,7 @@ do
     cat /sys/devices/virtual/dmi/id/board_{vendor,name}
 
     function fio-run {
-        fio --filename=/dev/${DISK}p${PART} --group_reporting --output-format=json --runtime=60 --size=100% --ioengine=libaio --direct=1 --stonewall $*
+        fio --filename=/dev/${DISK}p${PART} --group_reporting --output-format=json --time_based --runtime=60 --size=100% --ioengine=libaio --direct=1 --stonewall $*
     }
 
     # Выводим заголовки тестов

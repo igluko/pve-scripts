@@ -56,10 +56,6 @@ fi
 
 # PART="127"
 
-# Выводим информацию о текущих дисках
-printf "\n${ORANGE}Информация о текущий дисках${NC}\n"
-lsblk | grep nvme
-
 for DISK in $DISKS
 do
     # Проверяем, что диск существует
@@ -67,6 +63,9 @@ do
     if ! lsblk | grep -q ${DISK}
     then
         printf "${RED}Ошибка: диск /dev/${DISK} не найден${NC}\n"
+        # Выводим информацию о текущих дисках
+        printf "\n${ORANGE}Информация о текущих NVME дисках${NC}\n"
+        lsblk | grep nvme
         continue
     fi
 

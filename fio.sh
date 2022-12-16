@@ -94,7 +94,7 @@ do
 
     # Выводим информацию о диске и материнской плате
     hostname
-    cat /sys/class/block/${DISKS}/device/model
+    cat /sys/class/block/${DISK}/device/model
     cat /sys/class/block/${DISK}/device/serial
     cat /sys/devices/virtual/dmi/id/board_{vendor,name}
 

@@ -93,6 +93,7 @@ do
     fi
 
     # Выводим информацию о диске и материнской плате
+    printf "\n${GREEN}Информация:${NC}\n"
     hostname
     cat /sys/class/block/${DISK}/device/model
     cat /sys/class/block/${DISK}/device/serial

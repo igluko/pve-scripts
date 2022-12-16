@@ -30,7 +30,6 @@ flowchart TB
         IS_PART -- NO --> CREATE_PART[Create partition p4]
         CREATE_PART --> ECHO_INFO[Show disk info]
         IS_PART -- YES --> ECHO_INFO[Show disk info]
-        ECHO_INFO --> ECHO_HEADERS[Show all headers]
-        ECHO_HEADERS --> RUN_TESTS[Run all tests]
+        ECHO_INFO --> RUN_TESTS[Run all tests]
     end
 ```

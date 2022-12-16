@@ -12,3 +12,14 @@ How it works:
 - The script sends the hibernate command
 - Then waits for VM to shut down
 - Then starts up another VM
+
+Here is a simple flow chart:
+
+```mermaid
+graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
+```
+

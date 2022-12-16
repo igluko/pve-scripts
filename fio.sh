@@ -38,8 +38,8 @@ apt-install fio
 apt-install jq
 apt-install fdisk 
 
-DISKS="nvme2n1"
-PART="p1"
+DISKS="nvme0n1 nvme1n1"
+PART="p4"
 
 for DISK in $DISKS
 do
@@ -68,6 +68,7 @@ do
     function fio-run {
         fio --filename=/dev/${DISK}${PART} --group_reporting --output-format=json --runtime=60 --size=50G --ioengine=libaio --direct=1 --stonewall $*
     }
+    
     printf "\n${GREEN}Заголовки:${NC}\n"
     echo -e "Seq-1m-Q8T1-Read \t KB/sec"
     echo -e "Seq-1m-Q8T1-Write \t KB/sec"

@@ -94,6 +94,12 @@ function apt-install {
 
 #-----------------------START-----------------------#
 
+# Setup SSH
+DST_IP="localhost"
+DST_USER="root"
+DST="${DST_USER}@${DST_IP}"
+SSH="ssh -C -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${DST}"
+
 # Install soft
 printf "\n${GREEN}apt install fio jq fdisk nvme-cli${NC}\n"
 apt-install nvme-cli
@@ -153,15 +159,18 @@ ${SSH} "cat /sys/devices/virtual/dmi/id/{board_vendor,board_name,board_version,b
 # RAM
 ${SSH} "dmidecode -t memory | grep Speed | head -2 | xargs -r"
 # NVME
-${SSH} "cat /sys/class/block/nvme*/device/{model,serial,firmware_rev} 2>/dev/null ; true"
-${SSH} "fdisk -l /dev/nvme*n1 2>/dev/null | grep size"
-#{SSH} "nvme list"
-${SSH} "ls /dev/nvme*n1 | xargs -n1 nvme id-ns -H | (grep 'LBA Format'; echo "-")"
+if ${SSH} "ls /dev/nvme*n1 2>1 >/dev/null"
+then
+    ${SSH} "cat /sys/class/block/nvme*/device/{model,serial,firmware_rev} 2>/dev/null ; true"
+    ${SSH} "fdisk -l /dev/nvme*n1 2>/dev/null | grep size"
+    ${SSH} "nvme list"
+    ${SSH} "ls /dev/nvme*n1 | xargs -n1 nvme id-ns -H | (grep 'LBA Format')"
 
-printf "\nphysical_block_size\nhw_sector_size\nminimum_io_size\n-\n"
-${SSH} "cat /sys/block/nvme*n1/queue/physical_block_size; echo '-'"
-${SSH} "cat /sys/block/nvme*n1/queue/hw_sector_size; echo '-'"
-${SSH} "cat /sys/block/nvme*n1/queue/minimum_io_size; echo '-'"
+    printf "\nphysical_block_size\nhw_sector_size\nminimum_io_size\n-\n"
+    ${SSH} "cat /sys/block/nvme*n1/queue/physical_block_size; echo '-'"
+    ${SSH} "cat /sys/block/nvme*n1/queue/hw_sector_size; echo '-'"
+    ${SSH} "cat /sys/block/nvme*n1/queue/minimum_io_size; echo '-'"
+fi
 
 printf "\n${RED}Please update Documentation${NC}\n"
 read -e -p "> " -i "ok"

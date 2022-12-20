@@ -277,16 +277,28 @@ ${SSH}  "${WGET} https://fedorapeople.org/groups/virt/virtio-win/direct-download
 # Latest for windows 7:
 ${SSH}  "${WGET} https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.173-9/virtio-win-0.1.173.iso"
 
-# # Шаг X - Download virtio-win.iso
-# # Latest:
-# ${SSH}  "wget -N --content-disposition --directory-prefix=/var/lib/vz/template/iso/ https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"
-# # Latest for windows 7:
-# ${SSH}  "wget -N -O /var/lib/vz/template/iso/virtio-win-0.1.173-win7.iso https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.173-9/virtio-win-0.1.173.iso"
+# # Шаг 11 - добавление ноды в кластер
+# echo "Please take snapshot on ALL nodes, and add node to cluster"
+# read -e -p "> " -i "ok"
+# #$SSH "zfs snapshot -r rpool@before_cluster-${date +%s}"
 
-# Шаг 11 - добавление ноды в кластер
-echo "Please take snapshot on ALL nodes, and add node to cluster"
-read -e -p "> " -i "ok"
-#$SSH "zfs snapshot -r rpool@before_cluster-${date +%s}"
+# Шаг 11 - создание кластера
+printf "\n${ORANGE}Шаг 11 - создание кластера${NC}\n"
+if ! $SSH "pvecm status" 2>&1 >/dev/null
+then
+    # Создание защитных снимков
+    printf "\n${RED}Создание защитного снимка rpool/ROOT@before_cluster-$(date +%s)${NC}\n"
+    $SSH "zfs snapshot -r rpool/ROOT@before_cluster-$(date +%s)"
+    # Проверка параметров
+    run "hostname"
+    run "hostname -f"
+    run "hostname -i"
+    printf "\n${RED}Enter cluster name ${NC}\n"
+    read -p "> " ANSWER
+    run "pvecm create ${ANSWER}"
+fi
+# Проверяем результат
+run "pvecm status"
 
 exit
 # Шаг 13.1 - Патч Proxmox для работы с шифрованным ZFS и pve-zsync

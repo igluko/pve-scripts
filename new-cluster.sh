@@ -84,6 +84,20 @@ function update {
     # echo "$VARIABLE is $VALUE"
 }
 
+function apt-install {
+    if ! which "$1" >/dev/null
+    then
+        apt update -y || true
+        apt install -y "$1"
+    fi
+}
+
+#-----------------------START-----------------------#
+
+# Install soft
+printf "\n${GREEN}apt install fio jq fdisk nvme-cli${NC}\n"
+apt-install nvme-cli
+
 # Загружаем переменные из файла
 load "${SCRIPTPATH}/.env"
 
@@ -132,10 +146,22 @@ pve-firewall start
 # Шаг 3 - документация
 printf "\n${ORANGE}Шаг 3 - документация${NC}\n"
 
-ip addr
-cat /sys/class/block/*/device/{model,vendor} 2>/dev/null || true
-cat /sys/devices/virtual/dmi/id/board_{vendor,name} 2>/dev/null || true
-udevadm test /sys/class/net/eth0 2>/dev/null | grep ID_NET_NAME_ || true
+# IP
+${SSH} "ip addr"
+# Mother
+${SSH} "cat /sys/devices/virtual/dmi/id/{board_vendor,board_name,board_version,bios_version,bios_date} 2>/dev/null ; true"
+# RAM
+${SSH} "dmidecode -t memory | grep Speed | head -2 | xargs -r"
+# NVME
+${SSH} "cat /sys/class/block/nvme*/device/{model,serial,firmware_rev} 2>/dev/null ; true"
+${SSH} "fdisk -l /dev/nvme*n1 2>/dev/null | grep size"
+#{SSH} "nvme list"
+${SSH} "ls /dev/nvme*n1 | xargs -n1 nvme id-ns -H | (grep 'LBA Format'; echo "-")"
+
+printf "\nphysical_block_size\nhw_sector_size\nminimum_io_size\n-\n"
+${SSH} "cat /sys/block/nvme*n1/queue/physical_block_size; echo '-'"
+${SSH} "cat /sys/block/nvme*n1/queue/hw_sector_size; echo '-'"
+${SSH} "cat /sys/block/nvme*n1/queue/minimum_io_size; echo '-'"
 
 printf "\n${RED}Please update Documentation${NC}\n"
 read -e -p "> " -i "ok"

@@ -159,7 +159,7 @@ ${SSH} "cat /sys/devices/virtual/dmi/id/{board_vendor,board_name,board_version,b
 # RAM
 ${SSH} "dmidecode -t memory | grep Speed | head -2 | xargs -r"
 # NVME
-if ${SSH} "ls /dev/nvme*n1 2>1 >/dev/null"
+if ${SSH} "ls /dev/nvme*n1 2>&1 >/dev/null"
 then
     ${SSH} "cat /sys/class/block/nvme*/device/{model,serial,firmware_rev} 2>/dev/null ; true"
     ${SSH} "fdisk -l /dev/nvme*n1 2>/dev/null | grep size"

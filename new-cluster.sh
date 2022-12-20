@@ -269,7 +269,13 @@ run "zfs list -o name,atime,compression"
 
 # ${SSH} "zfs set primarycache=metadata rpool"
 
-exit
+# Шаг X - Download virtio-win.iso
+printf "\n${ORANGE}Шаг X - Download virtio-win.iso${NC}\n"
+WGET="wget -N --progress=bar:force --content-disposition --directory-prefix=/var/lib/vz/template/iso/"
+# Latest:
+${SSH}  "${WGET} https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"
+# Latest for windows 7:
+${SSH}  "${WGET} https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.173-9/virtio-win-0.1.173.iso"
 
 # # Шаг X - Download virtio-win.iso
 # # Latest:

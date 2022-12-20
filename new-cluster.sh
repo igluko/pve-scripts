@@ -227,26 +227,27 @@ $SSH "zpool upgrade rpool"
 # Шаг 9 - Шифрование данных кластера
 printf "\n${ORANGE}Шаг 9 - Шифрование данных кластера${NC}\n"
 
-    if ${SSH} "zfs get encryption -p -H rpool/data -o value | grep -q off"
-    then
-        # Создадим новый пароль
-        PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20 ; echo '')
-        printf "\n${RED}Сохраните пароль ZFS:${NC} ${PASSWORD}\n"
-        read -e -p "> " -i "ok"
+if ${SSH} "zfs get encryption -p -H rpool/data -o value | grep -q off"
+then
+    # Создадим новый пароль
+    PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20 ; echo '')
+    printf "\n${RED}Сохраните пароль ZFS:${NC} ${PASSWORD}\n"
+    read -e -p "> " -i "ok"
 
-        # Создадим файл с ключом шифрования в папке /tmp
-        FILE="/tmp/passphrase"
-        ${SSH} "echo ${PASSWORD} > ${FILE}"
-        
-        # Шифруем rpool/data
-        ${SSH} "zfs destroy rpool/data; true"
-        ${SSH} "zfs create -o encryption=on -o keyformat=passphrase -o keylocation=file:///tmp/passphrase rpool/data"
+    # Создадим файл с ключом шифрования в папке /tmp
+    FILE="/tmp/passphrase"
+    ${SSH} "echo ${PASSWORD} > ${FILE}"
+    
+    # Шифруем rpool/data
+    ${SSH} "zfs destroy rpool/data; true"
+    ${SSH} "zfs create -o encryption=on -o keyformat=passphrase -o keylocation=file:///tmp/passphrase rpool/data"
+fi
+# Проверяем результат
+${SSH} "zfs list -o name,encryption,keylocation,encryptionroot,keystatus"
 
-        # Проверяем результат
-        ${SSH} "zfs list -o name,encryption,keylocation,encryptionroot,keystatus"
-    fi
-
+exit
 # Шаг 8 - Настройка ZFS
+printf "\n${ORANGE}Шаг 8 - Настройка ZFS${NC}\n"
 ${SSH} "zpool set autotrim=on rpool"
 ${SSH} "zfs set atime=off rpool"
 ${SSH} "zfs set compression=zstd-fast rpool"

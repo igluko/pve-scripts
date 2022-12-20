@@ -228,7 +228,7 @@ $SSH "zpool upgrade rpool"
 printf "\n${ORANGE}Шаг 9 - Шифрование данных кластера${NC}\n"
 
 # Отрицательное условие нужно, чтобы обработать случай, когда датасета не существует
-if ! ${SSH} "zfs get encryption -p -H rpool/data -o value | grep -q on"
+if ${SSH} "zfs get encryption -p -H rpool/data -o value | grep -q off"
 then
     # Создадим новый пароль
     PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20 ; echo '')

@@ -27,8 +27,9 @@ SCRIPTPATH=`dirname $SCRIPT`
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 function run {
-	eval "$1"
-    printf "[$OK] $1 \n"
+    printf "\n${GREEN}$*${NC}\n"
+	# eval "$*"
+    $SSH "$*"
 }
 
 # function cron-update {
@@ -227,13 +228,12 @@ $SSH "zpool upgrade rpool"
 # Шаг 9 - Шифрование данных кластера
 printf "\n${ORANGE}Шаг 9 - Шифрование данных кластера${NC}\n"
 
-# Отрицательное условие нужно, чтобы обработать случай, когда датасета не существует
 if ${SSH} "zfs get encryption -p -H rpool/data -o value | grep -q off"
 then
-    # Создадим новый пароль
+    # Задаем пароль шифрования ZFS
     PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20 ; echo '')
-    printf "\n${RED}Сохраните пароль ZFS:${NC} ${PASSWORD}\n"
-    read -e -p "> " -i "ok"
+    printf "\n${RED}Пароль шифрования ZFS:${NC}\n"
+    read -e -p "> " -i "${PASSWORD}" PASSWORD
 
     # Создадим файл с ключом шифрования в папке /tmp
     FILE="/tmp/passphrase"
@@ -244,9 +244,8 @@ then
     ${SSH} "zfs create -o encryption=on -o keyformat=passphrase -o keylocation=file:///tmp/passphrase rpool/data"
 fi
 # Проверяем результат
-${SSH} "zfs list -o name,encryption,keylocation,encryptionroot,keystatus"
+run "zfs list -o name,encryption,keylocation,encryptionroot,keystatus"
 
-exit
 # Шаг 8 - Настройка ZFS
 printf "\n${ORANGE}Шаг 8 - Настройка ZFS${NC}\n"
 ${SSH} "zpool set autotrim=on rpool"
@@ -255,16 +254,22 @@ ${SSH} "zfs set compression=zstd-fast rpool"
 ${SSH} "pvesm set local-zfs --blocksize 16k"
 ${SSH} "echo 10779361280 >> /sys/module/zfs/parameters/zfs_arc_sys_free"
 
-local FILE="/etc/modprobe.d/zfs.conf"
-${SSH} "echo \"options zfs zfs_arc_sys_free=10779361280\" > ${FILE}"
+FILE="/etc/modprobe.d/zfs.conf"
+TEXT="options zfs zfs_arc_sys_free=10779361280"
 
-if ! $SSH "grep \"options zfs zfs_arc_sys_free=10779361280\" ${FILE}"
+if ! $SSH "grep \"${TEXT}\" ${FILE}" 2>&1 >/dev/null
 then
+    ${SSH} "echo \"${TEXT}\" > ${FILE}"
     ${SSH} "update-initramfs -u"
 fi
-${SSH} "zfs set primarycache=metadata rpool"
 
+# Проверяем результат   
+run "zpool list -o name,autotrim" 
+run "zfs list -o name,atime,compression"
 
+# ${SSH} "zfs set primarycache=metadata rpool"
+
+exit
 
 # # Шаг X - Download virtio-win.iso
 # # Latest:

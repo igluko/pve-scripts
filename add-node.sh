@@ -198,6 +198,10 @@ function 2-step {
     
     DST_HOSTNAME=$(${SSH} hostname)
 
+    # Install soft
+    printf "\n${GREEN}apt install${NC}\n"
+    apt-install jq nvme-cli
+
     # Шаг 2 - firewall
 
     local FILE="/etc/pve/firewall/cluster.fw"

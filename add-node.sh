@@ -205,6 +205,26 @@ function 2-step {
     # Шаг 2 - firewall
     printf "\n${ORANGE}Шаг 2 - firewall${NC}\n"
 
+    FILE="/etc/pve/firewall/cluster.fw"
+
+    # printf "\n${RED}Скопировать настройки Firewall с SSH клиента?${NC}\n"
+    # read -p "> " ANSWER
+
+    # if [ "$ANSWER" == "y" ]
+    # then
+    #     if ! grep ${DST_IP} ${FILE}
+    #     then
+    #         echo "IN ACCEPT -source ${DST_IP} -log nolog # ${DST_HOSTNAME}" >> ${FILE}
+    #     fi
+
+    #     if ! ${SSH} [[ -f ${FILE} ]]
+    #     then
+    #         ${SSH} "mkdir -p /etc/pve/firewall"
+    #     fi
+
+    #     cat ${FILE} | ${SSH} "cat > ${FILE}"
+    # fi
+
     # Create empty firewall
     FILE="/etc/pve/firewall/cluster.fw"
     if ! ${SSH} "[[ -f ${FILE} ]]"
@@ -499,12 +519,17 @@ function 2-step {
     printf "\n${ORANGE}---${NC}\n"
     ${SSH} "/root/Sync/pve-scripts/ebtables.sh"
 
-    # Шаг 17 - ebtables
-    printf "\n${ORANGE}Шаг 17 - ebtables${NC}\n"
+    # Шаг 18 - bridge и vlan
+    printf "\n${ORANGE}Шаг 18 - bridge и vlan${NC}\n"
     echo "Пропустили"
 
     # Шаг 18.1 - Добавление новых Bridge
     printf "\n${ORANGE}Шаг 18.1 - Добавление новых Bridge${NC}\n"
+    echo "Пропустили"
+
+    # Шаг 19 - Zabbix
+    ${SSH} "apt-intall zabbix-agent"
+    printf "\n${ORANGE}Шаг 19 - Zabbix${NC}\n"
     echo "Пропустили"
 }
 

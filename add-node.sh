@@ -92,7 +92,7 @@ function apt-install {
     if ! which "$1" >/dev/null
     then
         apt update -y || true
-        apt install -y "$1"
+        apt install -y "$*"
     fi
 }
 

@@ -295,14 +295,15 @@ then
 fi
 
 # Setup SSH
-    update "DST_IP"
-exit
-    DST_USER="root"
-    DST="${DST_USER}@${DST_IP}"
-    SSH="ssh -C -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${DST}"
+update "DST_IP"
+DST_USER="root"
+DST="${DST_USER}@${DST_IP}"
+SSH="ssh -C -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${DST}"
 
-
-    # copy ssh pub key to autorized
+# Copy public key to authorized_keys
+if ! ${SSH} "true"
+then
+    echo ""
     FILE='/root/.ssh/id_rsa.pub'
     if [ -f $FILE ]; then
         ssh-copy-id -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${FILE} ${DST}
@@ -310,11 +311,12 @@ exit
         echo "$FILE not exist"
         exit 1
     fi
+fi
 
-    # check step
-    if ! $SSH "[[ -d /etc/pve ]]"
-    then
-        1-step
-    else
-        2-step
-    fi
+# check step
+if ! $SSH "[[ -d /etc/pve ]]"
+then
+    1-step
+else
+    2-step
+fi

@@ -91,7 +91,7 @@ function apt-install {
     if ! which "$1" >/dev/null
     then
         apt update -y || true
-        apt install -y "$*"
+        apt install -y "$1"
     fi
 }
 
@@ -104,7 +104,7 @@ DST="${DST_USER}@${DST_IP}"
 SSH="ssh -C -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${DST}"
 
 # Install soft
-printf "\n${GREEN}apt install fio jq fdisk nvme-cli${NC}\n"
+printf "\n${GREEN}apt install nvme-cli${NC}\n"
 apt-install nvme-cli
 
 # Загружаем переменные из файла

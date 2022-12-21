@@ -123,7 +123,7 @@ while inotifywait -q -e close_write /etc/environment; do
     main >/dev/null
 done
 
-# read envivoments from file
+# Read variable from file
 function load {
     local FILE="${1}"
     if [[ -f  "${FILE}" ]]
@@ -134,6 +134,7 @@ function load {
     fi
 }
 
+# Save variable to file
 function save {
     local VARIABLE="${1}"
     local VALUE="$(echo ${!1} | xargs)"
@@ -147,21 +148,21 @@ function save {
     fi
 }
 
-# make sure that variable is set
-# echo "Please input destination XXX"
+# Update variable in file from stdin
 function update {
     local VARIABLE="${1}"
+    local FILE="${SCRIPTPATH}/.env"
 
-    echo "Please input ${VARIABLE}"
+    load ${FILE}
 
     if [[ ! -v ${VARIABLE} ]];
     then
         eval ${VARIABLE}=""
     fi
-
     local VALUE="$(echo ${!1} | xargs)"
 
+    printf "\n${ORANGE}Please input ${VARIABLE}${NC}\n"
     read -e -p "> " -i "${VALUE}" ${VARIABLE}
-    save ${VARIABLE} ".env"
+    save ${VARIABLE} ${FILE}
     # echo "$VARIABLE is $VALUE"
 }

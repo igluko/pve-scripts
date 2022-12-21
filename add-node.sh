@@ -44,7 +44,7 @@ function run {
     # fi
 # }
 
-# read envivoments from file
+# Read variable from file
 function load {
     local FILE="${1}"
     if [[ -f  "${FILE}" ]]
@@ -55,6 +55,7 @@ function load {
     fi
 }
 
+# Save variable to file
 function save {
     local VARIABLE="${1}"
     local VALUE="$(echo ${!1} | xargs)"
@@ -68,22 +69,22 @@ function save {
     fi
 }
 
-# make sure that variable is set
-# echo "Please input destination XXX"
+# Update variable in file from stdin
 function update {
     local VARIABLE="${1}"
+    local FILE="${SCRIPTPATH}/.env"
 
-    echo "Please input ${VARIABLE}"
+    load ${FILE}
 
     if [[ ! -v ${VARIABLE} ]];
     then
         eval ${VARIABLE}=""
     fi
-
     local VALUE="$(echo ${!1} | xargs)"
 
+    printf "\n${ORANGE}Please input ${VARIABLE}${NC}\n"
     read -e -p "> " -i "${VALUE}" ${VARIABLE}
-    save ${VARIABLE} ".env"
+    save ${VARIABLE} ${FILE}
     # echo "$VARIABLE is $VALUE"
 }
 
@@ -284,12 +285,18 @@ function 2-step {
 
 }
 
-# Setup if interacive mode  Suppress output if non-interacive mode
-if [ -t 1 ] ; then
-    load "${SCRIPTPATH}/.env"
+#-----------------------START-----------------------#
 
+# Check terminal
+if ! [[ -t 1 ]]
+then
+    echo "This script must be running in interactive mode"
+    exit 1
+fi
+
+# Setup SSH
     update "DST_IP"
-
+exit
     DST_USER="root"
     DST="${DST_USER}@${DST_IP}"
     SSH="ssh -C -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${DST}"
@@ -311,9 +318,3 @@ if [ -t 1 ] ; then
     else
         2-step
     fi
-
-
-    #run "cron-update"
-else
-    echo "This script must be running in interactive mode"
-fi

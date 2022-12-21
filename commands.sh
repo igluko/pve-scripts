@@ -122,3 +122,46 @@ function install-inotify {
 while inotifywait -q -e close_write /etc/environment; do
     main >/dev/null
 done
+
+# read envivoments from file
+function load {
+    local FILE="${1}"
+    if [[ -f  "${FILE}" ]]
+    then 
+        source "${FILE}"
+    else
+        touch "${FILE}"
+    fi
+}
+
+function save {
+    local VARIABLE="${1}"
+    local VALUE="$(echo ${!1} | xargs)"
+    local FILE="${2}"
+
+    if grep -q ^${VARIABLE}= $FILE 2>/dev/null
+    then
+        eval "sed -i -E 's/${VARIABLE}=.*/${VARIABLE}=\"${VALUE}\"/' $FILE"
+    else
+        echo "${VARIABLE}=\"${VALUE}\"" >> $FILE
+    fi
+}
+
+# make sure that variable is set
+# echo "Please input destination XXX"
+function update {
+    local VARIABLE="${1}"
+
+    echo "Please input ${VARIABLE}"
+
+    if [[ ! -v ${VARIABLE} ]];
+    then
+        eval ${VARIABLE}=""
+    fi
+
+    local VALUE="$(echo ${!1} | xargs)"
+
+    read -e -p "> " -i "${VALUE}" ${VARIABLE}
+    save ${VARIABLE} ".env"
+    # echo "$VARIABLE is $VALUE"
+}

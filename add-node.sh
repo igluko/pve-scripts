@@ -200,52 +200,147 @@ function 2-step {
 
     # Install soft
     printf "\n${GREEN}apt install${NC}\n"
-    apt-install jq nvme-cli
+    apt-install jq nvme-cli patch
 
     # Шаг 2 - firewall
+    printf "\n${ORANGE}Шаг 2 - firewall${NC}\n"
 
-    local FILE="/etc/pve/firewall/cluster.fw"
-    if ! grep ${DST_IP} ${FILE}
-    then
-        echo "IN ACCEPT -source ${DST_IP} -log nolog # ${DST_HOSTNAME}" >> ${FILE}
-    fi
-
-    if ! ${SSH} [[ -f ${FILE} ]]
+    # Create empty firewall
+    FILE="/etc/pve/firewall/cluster.fw"
+    if ! ${SSH} "[[ -f ${FILE} ]]"
     then
         ${SSH} "mkdir -p /etc/pve/firewall"
+        ${SSH} "printf '[OPTIONS]\n\nenable: 0\n\n[RULES]\n\n' >> ${FILE}"
+    fi
+    # Add whitelist.g00.link
+    echo "TXT:whitelist.g00.link:"
+    DOMAIN_LIST=$(dig whitelist.g00.link +short -t TXT | xargs)
+    for DOMAIN in $DOMAIN_LIST
+    do
+        echo " ${DOMAIN}"
+        IP_LIST=$(dig ${DOMAIN} +short)
+        for IP in $IP_LIST
+        do
+            echo " - ${IP}"
+            if ! ${SSH} "grep -q ${IP} ${FILE}"
+            then
+                ${SSH} "echo \"IN ACCEPT -source ${IP} -log nolog # ${DOMAIN}\" >> ${FILE}"
+            else
+                ${SSH} "sed -i '/${IP}/ s/.*/IN ACCEPT -source ${IP} -log nolog # ${DOMAIN}/' ${FILE}"
+            fi
+        done
+    done
+    # Add SRC_HOST
+    DOMAIN=$(hostname -f)
+    IP=$(hostname -i)
+    if ! ${SSH} "grep -q ${IP} ${FILE}"
+    then
+        ${SSH} "echo \"IN ACCEPT -source ${IP} -log nolog # ${DOMAIN}\" >> ${FILE}"
+    else
+        ${SSH} "sed -i '/${IP}/ s/.*/IN ACCEPT -source ${IP} -log nolog # ${DOMAIN}/' ${FILE}"
     fi
 
-    cat ${FILE} | ${SSH} "cat > ${FILE}"
+    # Проверяем результат
+    run "cat ${FILE}"
+    printf "\n${RED}Check the firewall${NC}\n"
+    read -e -p "> " -i "ok"
+
+    # # Откладываем выключение firewall на случай аварии
+    # ${SSH} "sleep 30 && pve-firewall stop &"
+    # exit
+    # # printf "\n${RED}Откладываем выключение firewall на 5 минут, PID=${PID}${NC}\n"
+
+    # Выключаем firewall
+    sed -i 's/enable: 0/enable: 1/g' ${FILE}
+    printf "Firewall activated. Please check connect to ${GREEN}https://$(hostname -I | xargs):8006${NC}\n"
+    read -e -p "> " -i "ok"
+
+    # # Отменяем отложенное отключение firewall
+    # echo "Отменяем отложенное отключение firewall"
+    # kill ${PID} || true
+    # Запускаем firewall
+    pve-firewall start
 
     # Шаг 3 - документация
+    printf "\n${ORANGE}Шаг 3 - документация${NC}\n"
 
+    # IP
     ${SSH} "ip addr"
-    ${SSH} "cat /sys/class/block/*/device/{model,vendor} 2>/dev/null ; true"
-    ${SSH} "cat /sys/devices/virtual/dmi/id/board_{vendor,name} 2>/dev/null ; true"
-    ${SSH} "udevadm test /sys/class/net/eth0 2>/dev/null | grep ID_NET_NAME_ ; true"
+    # Mother
+    ${SSH} "cat /sys/devices/virtual/dmi/id/{board_vendor,board_name,board_version,bios_version,bios_date} 2>/dev/null ; true"
+    # RAM
+    ${SSH} "dmidecode -t memory | grep Speed | head -2 | xargs -r"
+    # NVME
+    if ${SSH} "ls /dev/nvme*n1 2>&1 >/dev/null"
+    then
+        ${SSH} "cat /sys/class/block/nvme*/device/{model,serial,firmware_rev} 2>/dev/null ; true"
+        ${SSH} "fdisk -l /dev/nvme*n1 2>/dev/null | grep size"
+        ${SSH} "nvme list"
+        ${SSH} "ls /dev/nvme*n1 | xargs -n1 nvme id-ns -H | (grep 'LBA Format')"
 
-    echo "Please update Documentation"
+        printf "\nphysical_block_size\nhw_sector_size\nminimum_io_size\n-\n"
+        ${SSH} "cat /sys/block/nvme*n1/queue/physical_block_size; echo '-'"
+        ${SSH} "cat /sys/block/nvme*n1/queue/hw_sector_size; echo '-'"
+        ${SSH} "cat /sys/block/nvme*n1/queue/minimum_io_size; echo '-'"
+    fi
+
+    printf "\n${RED}Please update Documentation${NC}\n"
     read -e -p "> " -i "ok"
 
     # Шаг 4 - hosts
-    local FILE="/etc/hosts"
-    if ! grep ${DST_IP} ${FILE}
-    then
-        echo "${DST_IP} ${DST_HOSTNAME}.local ${DST_HOSTNAME}" >> ${FILE}
-    fi
+    printf "\n${ORANGE}Шаг 4 - hosts${NC}\n"
+    echo "Пропущено"
+    # local FILE="/etc/hosts"
+    # if ! grep ${DST_IP} ${FILE}
+    # then
+    #     echo "${DST_IP} ${DST_HOSTNAME}.local ${DST_HOSTNAME}" >> ${FILE}
+    # fi
 
-    cat ${FILE} | ${SSH} "cat > ${FILE}"
+    # cat ${FILE} | ${SSH} "cat > ${FILE}"
 
     # Шаг 5 - Отображать имя хоста во вкладке
+    printf "\n${ORANGE}Шаг 5 - Отображать имя хоста во вкладке${NC}\n"
     local FILE=".bashrc"
     if ! $SSH "grep \"If this is an xterm set the title to host:dir\" ${FILE}"
     then
         cat "${SCRIPTPATH}/${FILE}" | ${SSH} "cat >> ${FILE}"
     fi
 
+    # Шаг 6 - Download virtio-win.iso
+    printf "\n${ORANGE}Шаг 6 - Download virtio-win.iso${NC}\n"
+    WGET="wget -N --progress=bar:force --content-disposition --directory-prefix=/var/lib/vz/template/iso/"
+    # Latest:
+    ${SSH}  "${WGET} https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"
+    # Latest for windows 7:
+    ${SSH}  "${WGET} https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.173-9/virtio-win-0.1.173.iso"
+    # Проверяем результат
+    run "pvesm list local"
+
     # Шаг 7 - Лицензии и обновления
-    echo "Please install PVE Licence"
-    read -e -p "> " -i "ok"
+    printf "\n${ORANGE}Шаг 7 - Лицензии и обновления${NC}\n"
+
+    if ${SSH} "pvesubscription get | tee /dev/tty | grep -q notfound"
+    then
+        # Бесконечный цикл
+        while true
+        do
+            # Спрашиваем у пользователя, повторить команду или выйти из цикла
+            printf "\n${RED}Do you wanna set licence? (Y/n)?${NC}\n"
+            read -p "> " ANSWER
+
+            # Если пользователь выбрал выйти из цикла, выходим
+            if [ "$ANSWER" == "n" ]; then
+                break
+            fi
+            echo "Please enter PVE Licence"
+            read -e -p "> " -i "" LICENSE
+            # Проверяем успешность выполнения команды
+            if pvesubscription set ${LICENSE}
+            then
+                break
+            fi
+        done
+    fi
 
     #  Меняем RU репозитории на обычные, RU еле шевелятся:
     $SSH "sed -i s/\.ru\./\./ /etc/apt/sources.list"
@@ -256,51 +351,161 @@ function 2-step {
     # Включаем новые возможности zfs, если таковые есть
     $SSH "zpool upgrade rpool"
 
-    # Шаг 9 - Шифрование данных кластера
+    #  Меняем RU репозитории на обычные, RU еле шевелятся:
+    $SSH "sed -i s/\.ru\./\./ /etc/apt/sources.list"
 
-    if ${SSH} "zfs get encryption -p -H rpool/data | grep -q off"
+    # В заключении обновляем пакеты на сервере:
+    $SSH "apt update ; apt dist-upgrade -y"
+
+    # Включаем новые возможности zfs, если таковые есть
+    $SSH "zpool upgrade rpool"
+
+   # Шаг 9 - Шифрование данных кластера
+    printf "\n${ORANGE}Шаг 9 - Шифрование данных кластера${NC}\n"
+
+    if ${SSH} "zfs get encryption -p -H rpool/data -o value | grep -q off"
     then
-        #Создадим файл с ключом шифрования в папке /tmp
-        local FILE="/tmp/passphrase"
-        cat ${FILE} | ${SSH} "cat > ${FILE}"
-        $SSH "zfs destroy rpool/data; true"
-        $SSH "zfs create -o encryption=on -o keyformat=passphrase -o keylocation=file:///tmp/passphrase rpool/data"
-    fi
+        # Задаем пароль шифрования ZFS
+        PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20 ; echo '')
+        printf "\n${RED}Пароль шифрования ZFS:${NC}\n"
+        read -e -p "> " -i "${PASSWORD}" PASSWORD
 
-    # Шаг 8 - Настройка ZFS
+        # Создадим файл с ключом шифрования в папке /tmp
+        FILE="/tmp/passphrase"
+        ${SSH} "echo ${PASSWORD} > ${FILE}"
+        
+        # Шифруем rpool/data
+        ${SSH} "zfs destroy rpool/data; true"
+        ${SSH} "zfs create -o encryption=on -o keyformat=passphrase -o keylocation=file:///tmp/passphrase rpool/data"
+    fi
+    # Проверяем результат
+    run "zfs list -o name,encryption,keylocation,encryptionroot,keystatus"
+
+    printf "\n${ORANGE}Шаг 8 - Настройка ZFS${NC}\n"
     ${SSH} "zpool set autotrim=on rpool"
     ${SSH} "zfs set atime=off rpool"
     ${SSH} "zfs set compression=zstd-fast rpool"
     ${SSH} "pvesm set local-zfs --blocksize 16k"
     ${SSH} "echo 10779361280 >> /sys/module/zfs/parameters/zfs_arc_sys_free"
 
-    local FILE="/etc/modprobe.d/zfs.conf"
-    ${SSH} "echo \"options zfs zfs_arc_sys_free=10779361280\" > ${FILE}"
+    FILE="/etc/modprobe.d/zfs.conf"
+    TEXT="options zfs zfs_arc_sys_free=10779361280"
 
-    if ! $SSH "grep \"options zfs zfs_arc_sys_free=10779361280\" ${FILE}"
+    if ! $SSH "grep \"${TEXT}\" ${FILE}" 2>&1 >/dev/null
     then
+        ${SSH} "echo \"${TEXT}\" > ${FILE}"
         ${SSH} "update-initramfs -u"
     fi
-    ${SSH} "zfs set primarycache=metadata rpool"
 
+    # Проверяем результат   
+    run "zpool list -o name,autotrim" 
+    run "zfs list -o name,atime,compression"
 
+    # ${SSH} "zfs set primarycache=metadata rpool"
 
-    # # Шаг X - Download virtio-win.iso
-    # # Latest:
-    # ${SSH}  "wget -N --content-disposition --directory-prefix=/var/lib/vz/template/iso/ https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"
-    # # Latest for windows 7:
-    # ${SSH}  "wget -N -O /var/lib/vz/template/iso/virtio-win-0.1.173-win7.iso https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.173-9/virtio-win-0.1.173.iso"
+     
+    # Шаг 10 - доверие между узлами
+    printf "\n${ORANGE}Шаг 10 - доверие между узлами${NC}\n"
+    echo "Пропущен"
 
-    # Шаг 11 - добавление ноды в кластер
-    echo "Please take snapshot on ALL nodes, and add node to cluster"
-    read -e -p "> " -i "ok"
-    #$SSH "zfs snapshot -r rpool@before_cluster-${date +%s}"
+    # # Шаг 11 - добавление ноды в кластер
+    # echo "Please take snapshot on ALL nodes, and add node to cluster"
+    # read -e -p "> " -i "ok"
+    # #$SSH "zfs snapshot -r rpool@before_cluster-${date +%s}"
 
-    exit
+    # # Шаг 11 - создание кластера
+    # printf "\n${ORANGE}Шаг 11 - создание кластера${NC}\n"
+    # if ! $SSH "pvecm status" 2>&1 >/dev/null
+    # then
+    #     # Создание защитных снимков
+    #     printf "\n${RED}Создание защитного снимка rpool/ROOT@before_cluster-$(date +%s)${NC}\n"
+    #     $SSH "zfs snapshot -r rpool/ROOT@before_cluster-$(date +%s)"
+    #     # Проверка параметров
+    #     run "hostname"
+    #     run "hostname -f"
+    #     run "hostname -i"
+    #     printf "\n${RED}Enter cluster name ${NC}\n"
+    #     read -p "> " ANSWER
+    #     run "pvecm create ${ANSWER}"
+    # fi
+    # # Проверяем результат
+    # run "pvecm status"
+
+    # Шаг 12 - Настройка Syncthing
+    printf "\n${ORANGE}Шаг 8 - Настройка Syncthing${NC}\n"
+    # Установка
+    if ! ${SSH} "which syncthing >/dev/null"
+    then
+        ${SSH} "curl -s -o /usr/share/keyrings/syncthing-archive-keyring.gpg https://syncthing.net/release-key.gpg"
+        ${SSH} "echo \"deb [signed-by=/usr/share/keyrings/syncthing-archive-keyring.gpg] https://apt.syncthing.net/ syncthing stable\" | tee /etc/apt/sources.list.d/syncthing.list"
+        ${SSH} "printf \"Package: *\nPin: origin apt.syncthing.net\nPin-Priority: 990\n\" | tee /etc/apt/preferences.d/syncthing"
+        ${SSH} "apt update -y || true"
+        ${SSH} "apt install -y syncthing"
+        # ${SSH} "curl -o /etc/systemd/system/syncthing@.service https://raw.githubusercontent.com/igluko/syncthing-systemd/main/etc/systemd/system/syncthing%40.service"
+        ${SSH} "systemctl enable syncthing@root"
+        ${SSH} "systemctl start syncthing@root"
+    fi
+    # Проверяем результат
+    ${SSH} "systemctl status --no-pager syncthing@root"
+    # Настройка
+    FOLDER="iso"
+    if ! ${SSH} "syncthing cli config folders list | grep -q ${FOLDER}"
+    then
+        ${SSH} "syncthing cli config folders add --id iso --path /var/lib/vz/template/iso"
+    fi
+    # Проверяем результат
+    ${SSH} "syncthing cli config folders list"
+
+    # Активируем shared режим для local storage
+    ${SSH} pvesm set local --shared 1
+
+    # Шаг 13 - Проверка наличия скриптов
+    printf "\n${ORANGE}Шаг 13 - Проверка наличия скриптов${NC}\n"
+
+    if ! ${SSH} [[ -e /root/Sync/pve-scripts ]]
+    then
+        # ${SSH} "cd /root/Sync && git clone git@github.com:igluko/pve-scripts.git"
+        ${SSH} "cd /root/Sync && git clone https://github.com/igluko/pve-scripts.git"
+    else
+        # ${SSH} "cd /root/Sync && git pull git@github.com:igluko/pve-scripts.git"
+        ${SSH} "cd /root/Sync/pve-scripts && git pull https://github.com/igluko/pve-scripts.git"
+    fi
+
     # Шаг 13.1 - Патч Proxmox для работы с шифрованным ZFS и pve-zsync
-    ${SSH} "apt install -y patch"
-    ${SSH} "patch /usr/share/perl5/PVE/Storage/ZFSPoolPlugin.pm ZFSPoolPlugin.pm.patch"
+    printf "\n${ORANGE}Шаг 13.1 - Патч Proxmox для работы с шифрованным ZFS и pve-zsync${NC}\n"
+    FILE="/usr/share/perl5/PVE/Storage/ZFSPoolPlugin.pm"
+    PATCH="/root/Sync/pve-scripts/ZFSPoolPlugin.pm.patch"
+    ! ${SSH} "patch --forward ${FILE} ${PATCH} 2>&1  | tee /dev/tty | grep -q failed"
 
+    # Шаг 14 - pve-autorepl
+    printf "\n${ORANGE}Шаг 14 - pve-autorepl${NC}\n"
+    echo "Пропустили"
+
+    # Шаг 15 - meminfo
+    printf "\n${ORANGE}Шаг 15 - meminfo${NC}\n"
+    ${SSH} "/root/Sync/pve-scripts/notes.sh --add_cron"
+
+    # Шаг 15.1 - ROOT reservation
+    printf "\n${ORANGE}Шаг 15.1 - ROOT reservation${NC}\n"
+    ${SSH} "/root/Sync/pve-scripts/zfs-autoreservation.sh rpool/ROOT 5368709120 2>&1"
+
+    # Шаг 16 - swap через zRam
+    printf "\n${ORANGE}Шаг 16 - swap через zRam${NC}\n"
+    echo "Пропустили"
+
+    # Шаг 17 - ebtables
+    printf "\n${ORANGE}Шаг 17 - ebtables${NC}\n"
+    ${SSH} "ip link"
+    printf "\n${ORANGE}---${NC}\n"
+    ${SSH} "/root/Sync/pve-scripts/ebtables.sh"
+
+    # Шаг 17 - ebtables
+    printf "\n${ORANGE}Шаг 17 - ebtables${NC}\n"
+    echo "Пропустили"
+
+    # Шаг 18.1 - Добавление новых Bridge
+    printf "\n${ORANGE}Шаг 18.1 - Добавление новых Bridge${NC}\n"
+    echo "Пропустили"
 }
 
 #-----------------------START-----------------------#
@@ -313,10 +518,11 @@ then
 fi
 
 # Setup SSH
+# -A option enables forwarding of the authentication agent connection.
 update "DST_IP"
 DST_USER="root"
 DST="${DST_USER}@${DST_IP}"
-SSH="ssh -C -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${DST}"
+SSH="ssh -t -C -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${DST}"
 
 # Copy public key to authorized_keys
 if ! ${SSH} "true"

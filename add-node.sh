@@ -96,6 +96,20 @@ function apt-install {
     fi
 }
 
+function apt-install {
+    for NAME in $*
+    do
+        local DPKG="dpkg -l | awk '\$2==\"${NAME}\" && \$1==\"ii\" {print \$1,\$2,\$3}'"
+        if ! ${SSH} "${DPKG} | grep -q ii"
+        then
+            ${SSH} "apt update -y || true"
+            ${SSH} "apt install -y ${NAME}"
+        fi
+        # Проверяем результат
+        ${SSH} "${DPKG}"
+    done
+}
+
 function 1-step {
     printf "${ORANGE}"
     echo "Start 2 step"

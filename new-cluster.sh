@@ -227,6 +227,26 @@ $SSH "apt update ; apt dist-upgrade -y"
 # Включаем новые возможности zfs, если таковые есть
 $SSH "zpool upgrade rpool"
 
+# Шаг 8 - Настройка Syncthing
+printf "\n${ORANGE}Шаг 8 - Настройка Syncthing${NC}\n"
+# Установка
+if ! ${SSH} "which syncthing >/dev/null"
+then
+    ${SSH} "curl -s -o /usr/share/keyrings/syncthing-archive-keyring.gpg https://syncthing.net/release-key.gpg"
+    ${SSH} "echo \"deb [signed-by=/usr/share/keyrings/syncthing-archive-keyring.gpg] https://apt.syncthing.net/ syncthing stable\" | tee /etc/apt/sources.list.d/syncthing.list"
+    ${SSH} "printf \"Package: *\nPin: origin apt.syncthing.net\nPin-Priority: 990\n\" | tee /etc/apt/preferences.d/syncthing"
+    ${SSH} "apt update -y || true"
+    ${SSH} "apt install -y syncthing"
+    # ${SSH} "curl -o /etc/systemd/system/syncthing@.service https://raw.githubusercontent.com/igluko/syncthing-systemd/main/etc/systemd/system/syncthing%40.service"
+    ${SSH} "systemctl enable syncthing@root"
+    ${SSH} "systemctl start syncthing@root"
+    
+fi
+# Проверяем результат
+${SSH} "systemctl status --no-pager syncthing@root"
+# Настройка
+${SSH} "syncthing cli config folders add --id iso --path /var/lib/vz/template/iso"
+
 # Шаг 9 - Шифрование данных кластера
 printf "\n${ORANGE}Шаг 9 - Шифрование данных кластера${NC}\n"
 

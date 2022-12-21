@@ -1,7 +1,8 @@
 #!/bin/bash
 
 ###
-# This script prevents Hetzner Abuse Message : MAC-Errors
+# This script prepares a new PVE node
+# Tested on Hetzner AX-101 servers
 ###
 
 # Helpful to read output when debugging
@@ -12,9 +13,6 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 ORANGE='\033[0;33m'
 NC='\033[0m' # No Color
-OK="${GREEN} done ${NC}"
-FAIL="${RED}failed${NC}"
-WARN="[${ORANGE}warning${NC}]"
 
 # Strict mode
 # set -eEuo pipefail
@@ -31,8 +29,9 @@ SCRIPTPATH=`dirname $SCRIPT`
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 function run {
-	eval "$1"
-    printf "[$OK] $1 \n"
+    printf "\n${GREEN}$*${NC}\n"
+	# eval "$*"
+    $SSH "$*"
 }
 
 # function cron-update {
@@ -86,6 +85,14 @@ function update {
     read -e -p "> " -i "${VALUE}" ${VARIABLE}
     save ${VARIABLE} ".env"
     # echo "$VARIABLE is $VALUE"
+}
+
+function apt-install {
+    if ! which "$1" >/dev/null
+    then
+        apt update -y || true
+        apt install -y "$1"
+    fi
 }
 
 function 1-step {

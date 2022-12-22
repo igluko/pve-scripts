@@ -111,6 +111,32 @@ function Q {
         [[ "$ANSWER" == "y" ]] && return 1
     done
 }
+
+# Функция для вставки строки в файл, если до этого его там не было
+# Функция заменит строку в файле, если совпадет MATCH условие
+function insert-ssh {
+    FILE="${1}"
+    REPLACE="${2}"
+
+    ${SSH} "touch ${FILE}"
+
+    if [[ $# -eq 2 ]]
+    then
+        MATCH="$2"
+    else
+        MATCH="$3"
+    fi
+
+    if ! ${SSH} "grep -q \"${REPLACE}\" ${FILE}"
+    then
+        ${SSH} "echo \"${REPLACE}\" >> ${FILE}"
+    else
+        ESCAPED_REPLACE=$(printf '%s\n' "$REPLACE" | sed -e 's/[\/&]/\\&/g')
+        ESCAPED_MATCH=$(printf '%s\n' "$MATCH" | sed -e 's/[\/&]/\\&/g')
+        ${SSH} "sed -i '/${ESCAPED_MATCH}/ s/.*/${ESCAPED_REPLACE}/' ${FILE}"
+    fi
+}
+
 function 1-step {
     printf "${ORANGE}"
     echo "Start 2 step"
@@ -193,48 +219,62 @@ function 1-step {
 }
 
 function 2-step {
-    printf "${ORANGE}"
-    echo "Start 2 step"
-    printf "${NC}"
-    
-    DST_HOSTNAME=$(${SSH} hostname)
+
+    # Add public key form authorized_keys.g00.link
+    printf "\n${ORANGE}Add public key form authorized_keys.g00.link${NC}\n"
+    IFS=$'\n\t'
+    TXT_LIST=$(dig authorized_keys.g00.link +short -t TXT | sed 's/" "//g'| xargs -n1)
+
+    for TXT in ${TXT_LIST}
+    do
+        IFS=$' \n\t'
+        # echo "$TXT"
+        insert-ssh "/root/.ssh/authorized_keys" "$TXT"
+    done
+    exit
 
     # Install soft
-    printf "\n${GREEN}apt install${NC}\n"
+    printf "\n${ORANGE}apt install${NC}\n"
     apt-install jq nvme-cli patch
 
     # Шаг 2 - firewall
     printf "\n${ORANGE}Шаг 2 - firewall${NC}\n"
 
     FILE="/etc/pve/firewall/cluster.fw"
+    DST_HOSTNAME=$(${SSH} hostname)
 
-    # printf "\n${RED}Скопировать настройки Firewall с SSH клиента?${NC}\n"
-    # read -p "> " ANSWER
-
-    # if [ "$ANSWER" == "y" ]
-    # then
-    #     if ! grep ${DST_IP} ${FILE}
-    #     then
-    #         echo "IN ACCEPT -source ${DST_IP} -log nolog # ${DST_HOSTNAME}" >> ${FILE}
-    #     fi
-
-    #     if ! ${SSH} [[ -f ${FILE} ]]
-    #     then
-    #         ${SSH} "mkdir -p /etc/pve/firewall"
-    #     fi
-
-    #     cat ${FILE} | ${SSH} "cat > ${FILE}"
-    # fi
-
-    # Create empty firewall
-    FILE="/etc/pve/firewall/cluster.fw"
-    if ! ${SSH} "[[ -f ${FILE} ]]"
+    # Если firewall на целевом сервере не существует
+    if ! ${SSH} [[ -f ${FILE} ]]
     then
         ${SSH} "mkdir -p /etc/pve/firewall"
-        ${SSH} "printf '[OPTIONS]\n\nenable: 0\n\n[RULES]\n\n' >> ${FILE}"
+        # Create empty disabled firewall
+        if ! ${SSH} "[[ -f ${FILE} ]]"
+        then
+            ${SSH} "mkdir -p /etc/pve/firewall"
+            ${SSH} "printf '[OPTIONS]\n\nenable: 0\n\n[RULES]\n\n' >> ${FILE}"
+        fi
     fi
-    # Add whitelist.g00.link
-    echo "TXT:whitelist.g00.link:"
+
+    # Если firewall на SSH клиенте существует
+    if [[ -f ${FILE} ]]
+    then
+        # Если Firerwall на SSH клиенте не содержит IP целевого сервера
+        if ! grep -q ${DST_IP} ${FILE}
+        then
+            if Q "Добавить IP адрес целевого сервера в Firewall на SSH клиенте?"
+            then
+                echo "IN ACCEPT -source ${DST_IP} -log nolog # ${DST_HOSTNAME}" >> ${FILE}
+            fi
+        fi
+        if Q "Скопировать настройки Firewall с SSH клиента на целевой сервер?"
+        then
+            cat ${FILE} | ${SSH} "cat > ${FILE}"
+        fi
+    fi
+    
+    # Add whitelist.g00.link to target host Firewall
+    echo
+    echo "GET TXT:whitelist.g00.link:"
     DOMAIN_LIST=$(dig whitelist.g00.link +short -t TXT | xargs)
     for DOMAIN in $DOMAIN_LIST
     do
@@ -251,8 +291,9 @@ function 2-step {
             fi
         done
     done
-    # Add SRC_HOST
-    DOMAIN=$(hostname -f)
+
+    # Add SRC_HOST to target host Firewall
+    DOMAIN=$(hostname)
     IP=$(hostname -i)
     if ! ${SSH} "grep -q ${IP} ${FILE}"
     then
@@ -263,24 +304,26 @@ function 2-step {
 
     # Проверяем результат
     run "cat ${FILE}"
-    printf "\n${RED}Check the firewall${NC}\n"
-    read -e -p "> " -i "ok"
 
-    # # Откладываем выключение firewall на случай аварии
-    # ${SSH} "sleep 30 && pve-firewall stop &"
-    # exit
-    # # printf "\n${RED}Откладываем выключение firewall на 5 минут, PID=${PID}${NC}\n"
+    # Если firewall отключен, включаем его
+    if ${SSH} "grep -q \"enable: 0\"  ${FILE}"
+    then
+        # # Откладываем выключение firewall на случай аварии
+        # ${SSH} "sleep 30 && pve-firewall stop &"
+        # exit
+        # # printf "\n${RED}Откладываем выключение firewall на 5 минут, PID=${PID}${NC}\n"
 
-    # Выключаем firewall
-    sed -i 's/enable: 0/enable: 1/g' ${FILE}
-    printf "Firewall activated. Please check connect to ${GREEN}https://$(hostname -I | xargs):8006${NC}\n"
-    read -e -p "> " -i "ok"
+        # Включаем firewall
+        sed -i 's/enable: 0/enable: 1/g' ${FILE}
+        printf "Firewall activated. Please check connect to ${GREEN}https://$(hostname -I | xargs):8006${NC}\n"
+        read -e -p "> " -i "ok"
 
-    # # Отменяем отложенное отключение firewall
-    # echo "Отменяем отложенное отключение firewall"
-    # kill ${PID} || true
-    # Запускаем firewall
-    pve-firewall start
+        # # Отменяем отложенное отключение firewall
+        # echo "Отменяем отложенное отключение firewall"
+        # kill ${PID} || true
+        # Запускаем firewall
+        # pve-firewall start
+    fi
 
     # Шаг 3 - документация
     printf "\n${ORANGE}Шаг 3 - документация${NC}\n"

@@ -34,6 +34,7 @@ function apt-install {
 #-----------------------START-----------------------#
 
 # Install soft
+printf "\n${GREEN}apt install${NC}\n"
 apt-install fio
 apt-install jq
 apt-install fdisk

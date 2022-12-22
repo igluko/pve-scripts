@@ -89,14 +89,6 @@ function update {
 }
 
 function apt-install {
-    if ! which "$1" >/dev/null
-    then
-        apt update -y || true
-        apt install -y "$*"
-    fi
-}
-
-function apt-install {
     for NAME in $*
     do
         local DPKG="dpkg -l | awk '\$2==\"${NAME}\" && \$1==\"ii\" {print \$1,\$2,\$3}'"

@@ -110,6 +110,15 @@ function apt-install {
     done
 }
 
+function Q {
+    while true
+    do
+        printf "\n${RED}$* ${NC}(n\y)\n"
+        read -p "> " ANSWER
+        [[ "$ANSWER" == "y" ]] && return 0
+        [[ "$ANSWER" == "y" ]] && return 1
+    done
+}
 function 1-step {
     printf "${ORANGE}"
     echo "Start 2 step"

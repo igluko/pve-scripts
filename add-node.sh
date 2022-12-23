@@ -72,7 +72,12 @@ function save {
 # Update variable in file from stdin
 function update {
     local VARIABLE="${1}"
-    local FILE="${SCRIPTPATH}/.env"
+    if [[ $# -eq 2 ]]
+    then
+        local FILE="${2}"
+    else
+        local FILE="${SCRIPTPATH}/.env"
+    fi
 
     load ${FILE}
 

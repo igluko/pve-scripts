@@ -87,7 +87,7 @@ function update {
     fi
     local VALUE="$(echo ${!1} | xargs)"
 
-    printf "\n${ORANGE}Please input ${VARIABLE}${NC}\n"
+    printf "\n${RED}Please input ${VARIABLE}${NC}\n"
     read -e -p "> " -i "${VALUE}" ${VARIABLE}
     save ${VARIABLE} ${FILE}
     # echo "$VARIABLE is $VALUE"
@@ -591,9 +591,32 @@ function 2-step {
     echo "Пропустили"
 
     # Шаг 19 - Zabbix
-    ${SSH} "apt-intall zabbix-agent"
     printf "\n${ORANGE}Шаг 19 - Zabbix${NC}\n"
     echo "Пропустили"
+
+    # Шаг 20 - Бекап /etc
+    printf "\n${ORANGE}Шаг 20 - Бекап /etc${NC}\n"
+    while true
+    do
+        if ! Q "Настроить бэкап etc на PBS?"
+        then
+            break
+        fi
+
+        # Обновляем доступы
+        FILE=/etc/environment
+        update PBS_PASSWORD ${FILE}
+        update PBS_REPOSITORY ${FILE}
+
+        # Добавляем IP адрес в Firewall PBS
+        # echo "backup@pbs@162.55.131.125:Vinsent" | sed -E 's/(.*@)(.*)(:.*)/\2/'
+
+        # Пробуем настроить соединение
+        if ${SSH} -t "/root/pve-scripts/etc_backup.sh"
+        then
+            break
+        fi
+    done
 }
 
 #-----------------------START-----------------------#

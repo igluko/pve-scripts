@@ -99,11 +99,11 @@ function apt-install {
         local DPKG="dpkg -l | awk '\$2==\"${NAME}\" && \$1==\"ii\" {print \$1,\$2,\$3}'"
         if ! ${SSH} "${DPKG} | grep -q ii"
         then
-            ${SSH} "apt update -y || true"
-            ${SSH} "apt install -y ${NAME}"
+            ${SSH} -t "apt update -y || true"
+            ${SSH} -t "apt install -y ${NAME}"
         fi
         # Проверяем результат
-        ${SSH} "${DPKG}"
+        ${SSH} -t "${DPKG}"
     done
 }
 
@@ -388,7 +388,7 @@ function 2-step {
     # Шаг 7 - Лицензии и обновления
     printf "\n${ORANGE}Шаг 7 - Лицензии и обновления${NC}\n"
 
-    if ${SSH} "pvesubscription get | tee /dev/tty | grep -q notfound"
+    if ${SSH} -t "pvesubscription get | tee /dev/tty | grep -q notfound"
     then
         # Бесконечный цикл
         while true
@@ -534,17 +534,17 @@ function 2-step {
     if ! ${SSH} [[ -e /root/Sync/pve-scripts ]]
     then
         # ${SSH} "cd /root/Sync && git clone git@github.com:igluko/pve-scripts.git"
-        ${SSH} "cd /root/Sync && git clone https://github.com/igluko/pve-scripts.git"
+        ${SSH} -t "cd /root/Sync && git clone https://github.com/igluko/pve-scripts.git"
     else
         # ${SSH} "cd /root/Sync && git pull git@github.com:igluko/pve-scripts.git"
-        ${SSH} "cd /root/Sync/pve-scripts && git pull https://github.com/igluko/pve-scripts.git"
+        ${SSH} -t "cd /root/Sync/pve-scripts && git pull https://github.com/igluko/pve-scripts.git"
     fi
 
     # Шаг 13.1 - Патч Proxmox для работы с шифрованным ZFS и pve-zsync
     printf "\n${ORANGE}Шаг 13.1 - Патч Proxmox для работы с шифрованным ZFS и pve-zsync${NC}\n"
     FILE="/usr/share/perl5/PVE/Storage/ZFSPoolPlugin.pm"
     PATCH="/root/Sync/pve-scripts/ZFSPoolPlugin.pm.patch"
-    ! ${SSH} "patch --forward ${FILE} ${PATCH} 2>&1  | tee /dev/tty | grep -q failed"
+    ! ${SSH} -t "patch --forward ${FILE} ${PATCH} 2>&1  | tee /dev/tty | grep -q failed"
 
     # Шаг 14 - pve-autorepl
     printf "\n${ORANGE}Шаг 14 - pve-autorepl${NC}\n"
@@ -556,7 +556,7 @@ function 2-step {
 
     # Шаг 15.1 - ROOT reservation
     printf "\n${ORANGE}Шаг 15.1 - ROOT reservation${NC}\n"
-    ${SSH} "/root/Sync/pve-scripts/zfs-autoreservation.sh rpool/ROOT 5368709120 2>&1"
+    ${SSH} -t "/root/Sync/pve-scripts/zfs-autoreservation.sh rpool/ROOT 5368709120"
 
     # Шаг 16 - swap через zRam
     printf "\n${ORANGE}Шаг 16 - swap через zRam${NC}\n"
@@ -566,7 +566,7 @@ function 2-step {
     printf "\n${ORANGE}Шаг 17 - ebtables${NC}\n"
     ${SSH} "ip link"
     printf "\n${ORANGE}---${NC}\n"
-    ${SSH} "/root/Sync/pve-scripts/ebtables.sh"
+    ${SSH} -t "/root/Sync/pve-scripts/ebtables.sh"
 
     # Шаг 18 - bridge и vlan
     printf "\n${ORANGE}Шаг 18 - bridge и vlan${NC}\n"
@@ -596,7 +596,7 @@ fi
 update "DST_IP"
 DST_USER="root"
 DST="${DST_USER}@${DST_IP}"
-SSH="ssh -t -C -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${DST}"
+SSH="ssh -C -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${DST}"
 
 # Copy public key to authorized_keys
 if ! ${SSH} "true"

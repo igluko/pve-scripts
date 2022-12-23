@@ -113,7 +113,7 @@ function Q {
         printf "\n${RED}$* ${NC}(n\y)\n"
         read -p "> " ANSWER
         [[ "$ANSWER" == "y" ]] && return 0
-        [[ "$ANSWER" == "y" ]] && return 1
+        [[ "$ANSWER" == "n" ]] && return 1
     done
 }
 

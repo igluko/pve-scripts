@@ -142,6 +142,29 @@ function insert-ssh {
     fi
 }
 
+function insert {
+    FILE="${1}"
+    REPLACE="${2}"
+
+    eval "touch ${FILE}"
+
+    if [[ $# -eq 2 ]]
+    then
+        MATCH="$2"
+    else
+        MATCH="$3"
+    fi
+
+    if ! eval "grep -q \"${REPLACE}\" ${FILE}"
+    then
+        eval "echo \"${REPLACE}\" >> ${FILE}"
+    else
+        ESCAPED_REPLACE=$(printf '%s\n' "$REPLACE" | sed -e 's/[\/&]/\\&/g')
+        ESCAPED_MATCH=$(printf '%s\n' "$MATCH" | sed -e 's/[\/&]/\\&/g')
+        eval "sed -i '/${ESCAPED_MATCH}/ s/.*/${ESCAPED_REPLACE}/' ${FILE}"
+    fi
+}
+
 function 1-step {
     printf "${ORANGE}"
     echo "Start 2 step"

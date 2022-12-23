@@ -256,10 +256,8 @@ function 2-step {
     for TXT in ${TXT_LIST}
     do
         IFS=$' \n\t'
-        # echo "$TXT"
         insert-ssh "/root/.ssh/authorized_keys" "$TXT"
     done
-    exit
 
     # Install soft
     printf "\n${ORANGE}apt install${NC}\n"
@@ -269,7 +267,12 @@ function 2-step {
     printf "\n${ORANGE}Шаг 2 - firewall${NC}\n"
 
     FILE="/etc/pve/firewall/cluster.fw"
-    DST_HOSTNAME=$(${SSH} hostname)
+    # сохраняем Hostname для использования в Firewall 
+    DOMAIN_LOCAL=$(hostname -f)
+    DOMAIN_REMOTE=$(${SSH} hostname -f)
+    # сохраняем IP целевого сервера и IP ssh клиента для сравнения
+    IP_LOCAL=$(hostname -i)
+    IP_REMOTE=$($SSH hostname -i)
 
     # Если firewall на целевом сервере не существует
     if ! ${SSH} [[ -f ${FILE} ]]
@@ -283,15 +286,15 @@ function 2-step {
         fi
     fi
 
-    # Если firewall на SSH клиенте существует
-    if [[ -f ${FILE} ]]
+    # Если firewall на SSH клиенте существует и целевой сервер не localhost
+    if [[ -f ${FILE} ]] && [[ ${IP_LOCAL} != ${IP_REMOTE} ]]
     then
         # Если Firerwall на SSH клиенте не содержит IP целевого сервера
-        if ! grep -q ${DST_IP} ${FILE}
+        if ! grep -q ${IP_REMOTE} ${FILE}
         then
             if Q "Добавить IP адрес целевого сервера в Firewall на SSH клиенте?"
             then
-                echo "IN ACCEPT -source ${DST_IP} -log nolog # ${DST_HOSTNAME}" >> ${FILE}
+                echo "IN ACCEPT -source ${IP_REMOTE} -log nolog # ${DOMAIN_REMOTE}" >> ${FILE}
             fi
         fi
         if Q "Скопировать настройки Firewall с SSH клиента на целевой сервер?"
@@ -301,8 +304,8 @@ function 2-step {
     fi
     
     # Add whitelist.g00.link to target host Firewall
-    echo
-    echo "GET TXT:whitelist.g00.link:"
+    printf "\n${GREEN}GET TXT:whitelist.g00.link${NC}\n"
+
     DOMAIN_LIST=$(dig whitelist.g00.link +short -t TXT | xargs)
     for DOMAIN in $DOMAIN_LIST
     do
@@ -311,24 +314,17 @@ function 2-step {
         for IP in $IP_LIST
         do
             echo " - ${IP}"
-            if ! ${SSH} "grep -q ${IP} ${FILE}"
-            then
-                ${SSH} "echo \"IN ACCEPT -source ${IP} -log nolog # ${DOMAIN}\" >> ${FILE}"
-            else
-                ${SSH} "sed -i '/${IP}/ s/.*/IN ACCEPT -source ${IP} -log nolog # ${DOMAIN}/' ${FILE}"
-            fi
+            # Add IP to target host Firewall
+            REPLACE="IN ACCEPT -source ${IP} -log nolog # ${DOMAIN}"
+            MATCH="${IP}"
+            insert-ssh "${FILE}" "${REPLACE}" "${MATCH}"
         done
     done
 
-    # Add SRC_HOST to target host Firewall
-    DOMAIN=$(hostname)
-    IP=$(hostname -i)
-    if ! ${SSH} "grep -q ${IP} ${FILE}"
-    then
-        ${SSH} "echo \"IN ACCEPT -source ${IP} -log nolog # ${DOMAIN}\" >> ${FILE}"
-    else
-        ${SSH} "sed -i '/${IP}/ s/.*/IN ACCEPT -source ${IP} -log nolog # ${DOMAIN}/' ${FILE}"
-    fi
+    # Add IP_LOCAL to target host Firewall
+    REPLACE="IN ACCEPT -source ${IP_LOCAL} -log nolog # ${DOMAIN_LOCAL}"
+    MATCH="${IP_LOCAL}"
+    insert-ssh "${FILE}" "${REPLACE}" "${MATCH}"
 
     # Проверяем результат
     run "cat ${FILE}"
@@ -343,7 +339,7 @@ function 2-step {
 
         # Включаем firewall
         sed -i 's/enable: 0/enable: 1/g' ${FILE}
-        printf "Firewall activated. Please check connect to ${GREEN}https://$(hostname -I | xargs):8006${NC}\n"
+        printf "\nFirewall activated. Please check connect to ${GREEN}https://$(hostname -I | xargs):8006${NC}\n"
         read -e -p "> " -i "ok"
 
         # # Отменяем отложенное отключение firewall

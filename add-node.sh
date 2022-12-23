@@ -413,18 +413,17 @@ function 2-step {
         while true
         do
             # Спрашиваем у пользователя, повторить команду или выйти из цикла
-            printf "\n${RED}Do you wanna set licence? (Y/n)?${NC}\n"
-            read -p "> " ANSWER
-
-            # Если пользователь выбрал выйти из цикла, выходим
-            if [ "$ANSWER" == "n" ]; then
-                break
-            fi
-            echo "Please enter PVE Licence"
-            read -e -p "> " -i "" LICENSE
-            # Проверяем успешность выполнения команды
-            if pvesubscription set ${LICENSE}
+            if Q "Do you wanna set licence?"
             then
+                echo "Please enter PVE Licence"
+                read -e -p "> " -i "" LICENSE
+                # Проверяем успешность выполнения команды
+                if pvesubscription set ${LICENSE}
+                then
+                    # Если пользователь выбрал n, выходим из цикла
+                    break
+                fi
+            else
                 break
             fi
         done
@@ -433,20 +432,16 @@ function 2-step {
     #  Меняем RU репозитории на обычные, RU еле шевелятся:
     $SSH "sed -i s/\.ru\./\./ /etc/apt/sources.list"
 
-    # В заключении обновляем пакеты на сервере:
-    $SSH "apt update ; apt dist-upgrade -y"
-
-    # Включаем новые возможности zfs, если таковые есть
-    $SSH "zpool upgrade rpool"
-
-    #  Меняем RU репозитории на обычные, RU еле шевелятся:
-    $SSH "sed -i s/\.ru\./\./ /etc/apt/sources.list"
-
-    # В заключении обновляем пакеты на сервере:
-    $SSH "apt update ; apt dist-upgrade -y"
-
-    # Включаем новые возможности zfs, если таковые есть
-    $SSH "zpool upgrade rpool"
+    # Обносляем пакеты на сервере?
+    if Q "Обновляем пакеты?"
+        then
+        $SSH "apt update; apt dist-upgrade -y"
+        if Q "Обновляем пакеты?"
+            then
+            # Включаем новые возможности zfs, если таковые есть
+            $SSH "zpool upgrade rpool"
+        fi
+    fi
 
    # Шаг 9 - Шифрование данных кластера
     printf "\n${ORANGE}Шаг 9 - Шифрование данных кластера${NC}\n"

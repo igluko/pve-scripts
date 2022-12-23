@@ -12,7 +12,7 @@ SCRIPTPATH=`dirname $SCRIPT`
 # add binary folders to local path
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-if [[ $1 == "--add_cron" ]]; then
+if [[ -t ]]; then
     TASK="0 23 * * * $SCRIPT"
     if crontab -l 2>/dev/null | grep -F -q "$TASK"
     then 
@@ -20,7 +20,6 @@ if [[ $1 == "--add_cron" ]]; then
     else
         (crontab -l 2>/dev/null; echo "$TASK") | crontab -
     fi
-    exit 0
 fi
 mkdir -p /home/backup
 cp -r /etc /home/backup/etc

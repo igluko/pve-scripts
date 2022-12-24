@@ -8,9 +8,6 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 ORANGE='\033[0;33m'
 NC='\033[0m' # No Color
-OK="${GREEN} done ${NC}"
-FAIL="${RED}failed${NC}"
-WARN="[${ORANGE}warning${NC}]"
 
 # Strict mode
 # set -eEuo pipefail
@@ -32,7 +29,7 @@ IPS=$(cat /etc/corosync/corosync.conf | grep ring0_addr | sed "s/.*ring0_addr: /
 while true
 do
     printf "\n${ORANGE}Please enter command${NC}\n"
-    read -e -p "> " -i "" COMMAND
+    read -r -e -p "> " -i "" COMMAND
 
     for IP in ${IPS}
     do

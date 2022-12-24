@@ -617,6 +617,53 @@ function 2-step {
             break
         fi
     done
+
+    # Шаг 21 - Проверка актуальности беков PBS
+    printf "\n${ORANGE}Шаг 21 - Проверка актуальности беков PBS${NC}\n"
+    while true
+    do
+        if ! Q "Настроить проверку актуальности беков PBS?"
+        then
+            break
+        fi
+
+        # Обновляем доступы
+        FILE=/etc/environment
+        update TG_TOKEN ${FILE}
+        update TG_CHAT ${FILE}
+
+        # Пробуем запустить скрипт
+        if ${SSH} -t "/root/Sync/pve-scripts/backup-check.py"
+        then
+            # Добавляем скрипт в крон и выходим
+            ${SSH} "/root/Sync/pve-scripts/backup-check.py -add_cron" 
+            break
+        fi
+    done
+
+    # Шаг 23 - Sanoid
+    printf "\n${ORANGE}Шаг 23 - Sanoid${NC}\n"
+
+    while true
+    do
+        if ! Q "Настроить переодические снимки через Sanoid?"
+        then
+            break
+        fi
+
+        # Обновляем доступы
+        FILE=/etc/environment
+        update TG_TOKEN ${FILE}
+        update TG_CHAT ${FILE}
+
+        # Пробуем запустить скрипт
+        if ${SSH} -t "/root/Sync/pve-scripts/backup-check.py"
+        then
+            # Добавляем скрипт в крон и выходим
+            ${SSH} "/root/Sync/pve-scripts/backup-check.py -add_cron" 
+            break
+        fi
+    done
 }
 
 #-----------------------START-----------------------#

@@ -28,15 +28,22 @@ SCRIPTPATH=`dirname $SCRIPT`
 # add binary folders to local path
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-export PBS_LOG=error
 export PBS_PASSWORD=$PBS_PASSWORD
 export PBS_REPOSITORY=$PBS_REPOSITORY
 
 #-----------------------START-----------------------#
 
+function backup {
+    mkdir -p /home/backup
+    cp -r /etc /home/backup/etc
+    proxmox-backup-client backup home.pxar:/home/backup/
+}
+
 # Если интерактивный режим
 if [[ -t 1 ]]
 then
+    printf "\n"
+
     # Проверка соединение
     proxmox-backup-client login
 
@@ -55,8 +62,12 @@ then
         echo "add task to crontab"
         (crontab -l 2>/dev/null; echo "$TASK") | crontab -
     fi
+    # Запуск бэкапа
+    printf "\n"
+    backup
+else
+    # Выводим в stdout только ошибки
+    export PBS_LOG=error
+    backup
 fi
-# Запуск бэкапа
-mkdir -p /home/backup
-cp -r /etc /home/backup/etc
-proxmox-backup-client backup home.pxar:/home/backup/ > /dev/null
+

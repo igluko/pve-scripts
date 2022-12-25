@@ -528,15 +528,18 @@ function 2-step {
     # Проверяем результат
     ${SSH} -t "systemctl status --no-pager syncthing@root"
 
-    # Настройка
-    if Q "Это первая нода?"
+
+    # Добавляем папки
+    FOLDER="iso"
+    PATH="/var/lib/vz/template/iso"
+    if ! ${SSH} "syncthing cli config folders list | grep -q ${FOLDER}"
     then
-        FOLDER="iso"
-        if ! ${SSH} "syncthing cli config folders list | grep -q ${FOLDER}"
-        then
-            ${SSH} "syncthing cli config folders add --id iso --path /var/lib/vz/template/iso"
-        fi
-    else
+        ${SSH} "syncthing cli config folders add --id ${FOLDER} --path ${PATH}"
+    fi
+
+    # Настройка
+    if Q "Объединить локальную и удаленную ноды Syncthing?"
+    then
         # add local device to remote Syncthing
         ID1=$(syncthing --device-id)
         ${SSH} "syncthing cli config devices add --device-id ${ID1}"
@@ -553,16 +556,16 @@ function 2-step {
         do
             eval "syncthing cli config folders ${FOLDER} devices add --device-id ${ID2}"
         done
+        # Проверка
+        printf "\n${ORANGE}local devices list:${NC}\n"
+        eval "syncthing cli config devices list"
+        printf "\n${ORANGE}remote devices list:${NC}\n"
+        ${SSH} "syncthing cli config devices list"
+        printf "\n${ORANGE}local folder list:${NC}\n"
+        eval "syncthing cli config folders list"
+        printf "\n${ORANGE}remote folder list:${NC}\n"
+        ${SSH} "syncthing cli config folders list"
     fi
-    # Проверка
-    printf "\n${ORANGE}local devices list:${NC}\n"
-    eval "syncthing cli config devices list"
-    printf "\n${ORANGE}remote devices list:${NC}\n"
-    ${SSH} "syncthing cli config devices list"
-    printf "\n${ORANGE}local folder list:${NC}\n"
-    eval "syncthing cli config folders list"
-    printf "\n${ORANGE}remote folder list:${NC}\n"
-    ${SSH} "syncthing cli config folders list"
 
     # Активируем shared режим для local storage
     ${SSH} pvesm set local --shared 1

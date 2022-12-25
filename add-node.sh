@@ -239,7 +239,7 @@ function 1-step {
 function 2-step {
 
     # Add public key form authorized_keys.g00.link
-    printf "\n${ORANGE}Add public key form authorized_keys.g00.link${NC}\n"
+    printf "\n${ORANGE}Add public key from authorized_keys.g00.link${NC}\n"
     IFS=$'\n\t'
     TXT_LIST=$(dig authorized_keys.g00.link +short -t TXT | sed 's/" "//g'| xargs -n1)
 
@@ -529,13 +529,12 @@ function 2-step {
     # Проверяем результат
     ${SSH} -t "systemctl status --no-pager syncthing@root"
 
-
     # Добавляем папки
-    FOLDER="iso"
-    PATH="/var/lib/vz/template/iso"
-    if ! ${SSH} "syncthing cli config folders list | grep -q ${FOLDER}"
+    FOLDER_NAME="iso"
+    FOLDER_PATH="/var/lib/vz/template/iso"
+    if ! ${SSH} "syncthing cli config folders list | grep -q ${FOLDER_NAME}"
     then
-        ${SSH} "syncthing cli config folders add --id ${FOLDER} --path ${PATH}"
+        ${SSH} "syncthing cli config folders add --id ${FOLDER_NAME} --path ${FOLDER_PATH}"
     fi
 
     # Настройка

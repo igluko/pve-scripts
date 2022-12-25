@@ -482,27 +482,42 @@ function 2-step {
     echo "Пропущен"
 
     # # Шаг 11 - добавление ноды в кластер
+    
     # echo "Please take snapshot on ALL nodes, and add node to cluster"
     # read -e -p "> " -i "ok"
     # #$SSH "zfs snapshot -r rpool@before_cluster-${date +%s}"
 
     # # Шаг 11 - создание кластера
     # printf "\n${ORANGE}Шаг 11 - создание кластера${NC}\n"
-    # if ! $SSH "pvecm status" 2>&1 >/dev/null
-    # then
-    #     # Создание защитных снимков
-    #     printf "\n${RED}Создание защитного снимка rpool/ROOT@before_cluster-$(date +%s)${NC}\n"
-    #     $SSH "zfs snapshot -r rpool/ROOT@before_cluster-$(date +%s)"
-    #     # Проверка параметров
-    #     run "hostname"
-    #     run "hostname -f"
-    #     run "hostname -i"
-    #     printf "\n${RED}Enter cluster name ${NC}\n"
-    #     read -p "> " ANSWER
-    #     run "pvecm create ${ANSWER}"
-    # fi
-    # # Проверяем результат
-    # run "pvecm status"
+
+    # Если на удаленной ноде нет кластера
+    if ! $SSH "pvecm status" 2>&1 >/dev/null
+    then
+        # Проверка параметров
+        run "hostname"
+        run "hostname -f"
+        run "hostname -i"
+
+        # Если на локальной ноде есть кластер, предлагаем добавить удаленную ноду в него
+        if eval "pvecm status" 2>&1 >/dev/null && Q "Добавить ноду в существующий кластер"
+        then
+                # echo "Please take snapshot on ALL nodes, and add node to cluster"
+                # read -e -p "> " -i "ok"
+                # #$SSH "zfs snapshot -r rpool@before_cluster-${date +%s}"
+                echo "Не реализовано"
+        elif Q "Создать новый кластер?"
+        then
+            # Создание защитных снимков
+            printf "\n${RED}Создание защитного снимка rpool/ROOT@before_cluster-$(date +%s)${NC}\n"
+            $SSH "zfs snapshot -r rpool/ROOT@before_cluster-$(date +%s)"
+            printf "\n${RED}Enter cluster name ${NC}\n"
+            read -p "> " ANSWER
+            run "pvecm create ${ANSWER}"
+        fi
+        # Проверяем результат
+        run "pvecm status"
+    fi
+
 
     # Шаг 12 - Настройка Syncthing
     printf "\n${ORANGE}Шаг 8 - Настройка Syncthing${NC}\n"

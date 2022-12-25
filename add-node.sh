@@ -443,6 +443,7 @@ function 2-step {
         if [[ -f $FILE ]]
         then
             PASSWORD=$(cat $FILE)
+            echo "Предложен пароль из файла $FILE с локального сервера"
         else
             PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20 ; echo '')
         fi

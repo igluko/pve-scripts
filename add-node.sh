@@ -426,7 +426,7 @@ function 2-step {
     if Q "Обновляем пакеты?"
         then
         $SSH "apt update; apt dist-upgrade -y"
-        if Q "Обновляем пакеты?"
+        if Q "Включаем новые возможности ZFS? (zpool upgrade)"
             then
             # Включаем новые возможности zfs, если таковые есть
             $SSH "zpool upgrade rpool"
@@ -519,7 +519,7 @@ function 2-step {
         ${SSH} "systemctl start syncthing@root"
     fi
     # Проверяем результат
-    ${SSH} "systemctl status --no-pager syncthing@root"
+    ${SSH} -t "systemctl status --no-pager syncthing@root"
     # Настройка
     FOLDER="iso"
     if ! ${SSH} "syncthing cli config folders list | grep -q ${FOLDER}"
@@ -527,7 +527,7 @@ function 2-step {
         ${SSH} "syncthing cli config folders add --id iso --path /var/lib/vz/template/iso"
     fi
     # Проверяем результат
-    ${SSH} "syncthing cli config folders list"
+    ${SSH} -t "syncthing cli config folders list"
 
     # Активируем shared режим для local storage
     ${SSH} pvesm set local --shared 1

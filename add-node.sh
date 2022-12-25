@@ -634,12 +634,20 @@ function 2-step {
     # Шаг 23 - Sanoid
     printf "\n${ORANGE}Шаг 23 - Sanoid${NC}\n"
 
-    while true
-    do
-        if ! Q "Настроить переодические снимки через Sanoid?"
-        then
-            break
-        fi
+    if Q "Настроить переодические снимки через Sanoid?"
+    then
+        # Устанавливаем
+        apt-install sanoid
+        # Меняем часовой пояс
+        ${SSH} "sed -i -E '/Environment=TZ=/ s/UTC/Europe\/Moscow/' /lib/systemd/system/sanoid.service"
+        # Конфигурирование sanoid:
+        ${SSH} "mkdir -p /etc/sanoid"
+        cat ${SCRIPTPATH}/sanoid.conf | ${SSH} "cat > /etc/sanoid/sanoid.conf"
+        # Перечитываем конфиги сервисов
+        ${SSH} systemctl daemon-reload
+        # Проверка сервисов
+        ${SSH} systemctl status --no-pager {sanoid,sanoid-prune,sanoid.timer}
+    fi
 
         # Обновляем доступы
         FILE=/etc/environment

@@ -251,7 +251,7 @@ function 2-step {
 
     # Install soft
     printf "\n${ORANGE}apt install${NC}\n"
-    apt-install git jq nvme-cli patch
+    apt-install git jq nvme-cli patch sanoid
 
     # Шаг 2 - firewall
     printf "\n${ORANGE}Шаг 2 - firewall${NC}\n"

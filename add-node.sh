@@ -251,7 +251,7 @@ function 2-step {
 
     # Install soft
     printf "\n${ORANGE}apt install${NC}\n"
-    apt-install jq nvme-cli patch
+    apt-install git jq nvme-cli patch
 
     # Шаг 2 - firewall
     printf "\n${ORANGE}Шаг 2 - firewall${NC}\n"
@@ -388,9 +388,9 @@ function 2-step {
     printf "\n${ORANGE}Шаг 6 - Download virtio-win.iso${NC}\n"
     WGET="wget -N --progress=bar:force --content-disposition --directory-prefix=/var/lib/vz/template/iso/"
     # Latest:
-    ${SSH}  "${WGET} https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"
+    ${SSH} -t "${WGET} https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"
     # Latest for windows 7:
-    ${SSH}  "${WGET} https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.173-9/virtio-win-0.1.173.iso"
+    ${SSH} -t "${WGET} https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.173-9/virtio-win-0.1.173.iso"
     # Проверяем результат
     run "pvesm list local"
 
@@ -520,14 +520,42 @@ function 2-step {
     fi
     # Проверяем результат
     ${SSH} -t "systemctl status --no-pager syncthing@root"
+
     # Настройка
-    FOLDER="iso"
-    if ! ${SSH} "syncthing cli config folders list | grep -q ${FOLDER}"
+    if Q "Это первая нода?"
     then
-        ${SSH} "syncthing cli config folders add --id iso --path /var/lib/vz/template/iso"
+        FOLDER="iso"
+        if ! ${SSH} "syncthing cli config folders list | grep -q ${FOLDER}"
+        then
+            ${SSH} "syncthing cli config folders add --id iso --path /var/lib/vz/template/iso"
+        fi
+    else
+        # add local device to remote Syncthing
+        ID1=$(syncthing --device-id)
+        ${SSH} "syncthing cli config devices add --device-id ${ID1}"
+        ${SSH} "syncthing cli config devices ${ID1} auto-accept-folders set true"
+        ${SSH} "syncthing cli config devices ${ID1} introducer set true"
+        # add remote device to local Syncthing
+        ID2=$(${SSH} syncthing --device-id)
+        eval "syncthing cli config devices add --device-id ${ID2}"
+        eval "syncthing cli config devices ${ID2} auto-accept-folders set true"
+        eval "syncthing cli config devices ${ID2} introducer set true"
+        
+        # add local folders to remote
+        for FOLDER in $(syncthing cli config folders list)
+        do
+            eval "syncthing cli config folders ${FOLDER} devices add --device-id ${ID2}"
+        done
     fi
-    # Проверяем результат
-    ${SSH} -t "syncthing cli config folders list"
+    # Проверка
+    printf "\n${ORANGE}local devices list:${NC}\n"
+    eval "syncthing cli config devices list"
+    printf "\n${ORANGE}remote devices list:${NC}\n"
+    ${SSH} "syncthing cli config devices list"
+    printf "\n${ORANGE}local folder list:${NC}\n"
+    eval "syncthing cli config folders list"
+    printf "\n${ORANGE}remote folder list:${NC}\n"
+    ${SSH} "syncthing cli config folders list"
 
     # Активируем shared режим для local storage
     ${SSH} pvesm set local --shared 1

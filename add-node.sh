@@ -601,8 +601,8 @@ function 2-step {
         # Добавляем IP адрес в Firewall PBS
         # echo "backup@pbs@162.55.131.125:Vinsent" | sed -E 's/(.*@)(.*)(:.*)/\2/'
 
-        # Пробуем настроить соединение
-        if ${SSH} -t "/root/pve-scripts/etc_backup.sh"
+        # Пробуем запустить скрипт
+        if ${SSH} -t "/root/Sync/pve-scripts/etc_backup.sh"
         then
             break
         fi
@@ -649,16 +649,24 @@ function 2-step {
         ${SSH} systemctl status --no-pager {sanoid,sanoid-prune,sanoid.timer}
     fi
 
+    # Шаг 24 - Проверка снимков syncoid
+    printf "\n${ORANGE}Шаг 24 - Проверка снимков syncoid${NC}\n"
+
+    while true
+    do
+        if ! Q "Настроить проверку снимков syncoid?"
+        then
+            break
+        fi
+
         # Обновляем доступы
         FILE=/etc/environment
         update TG_TOKEN ${FILE}
         update TG_CHAT ${FILE}
 
         # Пробуем запустить скрипт
-        if ${SSH} -t "/root/Sync/pve-scripts/backup-check.py"
+        if ${SSH} -t "/root/Sync/pve-scripts/sync-check.sh 1"
         then
-            # Добавляем скрипт в крон и выходим
-            ${SSH} "/root/Sync/pve-scripts/backup-check.py -add_cron" 
             break
         fi
     done

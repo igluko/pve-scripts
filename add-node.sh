@@ -282,12 +282,12 @@ function 2-step {
         # Если Firerwall на SSH клиенте не содержит IP целевого сервера
         if ! grep -q ${IP_REMOTE} ${FILE}
         then
-            if Q "Добавить IP адрес целевого сервера в Firewall на SSH клиенте?"
+            if Q "Добавить IP адрес удаленного сервера в Firewall локального сервера?"
             then
                 echo "IN ACCEPT -source ${IP_REMOTE} -log nolog # ${DOMAIN_REMOTE}" >> ${FILE}
             fi
         fi
-        if Q "Скопировать настройки Firewall с SSH клиента на целевой сервер?"
+        if Q "Скопировать Firewall локального сервера на удаленный сервер?"
         then
             cat ${FILE} | ${SSH} "cat > ${FILE}"
         fi
@@ -498,6 +498,7 @@ function 2-step {
                 # echo "Please take snapshot on ALL nodes, and add node to cluster"
                 # read -e -p "> " -i "ok"
                 # #$SSH "zfs snapshot -r rpool@before_cluster-${date +%s}"
+                # pvecm add IP_ADDRESS_OF_EXISTING_NODE
                 echo "Не реализовано"
         elif Q "Создать новый кластер?"
         then
@@ -509,7 +510,7 @@ function 2-step {
             run "pvecm create ${ANSWER}"
         fi
         # Проверяем результат
-        run "pvecm status"
+        # run "pvecm status"
     fi
 
     # Шаг 12 - Настройка Syncthing
@@ -569,6 +570,15 @@ function 2-step {
 
     # Активируем shared режим для local storage
     ${SSH} pvesm set local --shared 1
+
+    # Шаг 12.1 - Копирование /etc/environment
+    printf "\n${ORANGE}Шаг 12.1 - Копирование /etc/environment${NC}\n"
+
+    if ! Q "Скопировать /etc/environment на удаленный хост?"
+    FILE="/etc/environment"
+    then
+        cat ${FILE} | ${SSH} "cat > ${FILE}"
+    fi
 
     # Шаг 13 - Проверка наличия скриптов
     printf "\n${ORANGE}Шаг 13 - Проверка наличия скриптов${NC}\n"

@@ -481,14 +481,8 @@ function 2-step {
     printf "\n${ORANGE}Шаг 10 - доверие между узлами${NC}\n"
     echo "Пропущен"
 
-    # # Шаг 11 - добавление ноды в кластер
-    
-    # echo "Please take snapshot on ALL nodes, and add node to cluster"
-    # read -e -p "> " -i "ok"
-    # #$SSH "zfs snapshot -r rpool@before_cluster-${date +%s}"
-
-    # # Шаг 11 - создание кластера
-    # printf "\n${ORANGE}Шаг 11 - создание кластера${NC}\n"
+    # Шаг 11 - добавление ноды в кластер
+    printf "\n${ORANGE}Шаг 11 - добавление ноды в кластер${NC}\n"
 
     # Если на удаленной ноде нет кластера
     if ! $SSH "pvecm status" 2>&1 >/dev/null
@@ -518,7 +512,6 @@ function 2-step {
         run "pvecm status"
     fi
 
-
     # Шаг 12 - Настройка Syncthing
     printf "\n${ORANGE}Шаг 8 - Настройка Syncthing${NC}\n"
     # Установка
@@ -529,7 +522,6 @@ function 2-step {
         ${SSH} "printf \"Package: *\nPin: origin apt.syncthing.net\nPin-Priority: 990\n\" | tee /etc/apt/preferences.d/syncthing"
         ${SSH} "apt update -y || true"
         ${SSH} "apt install -y syncthing"
-        # ${SSH} "curl -o /etc/systemd/system/syncthing@.service https://raw.githubusercontent.com/igluko/syncthing-systemd/main/etc/systemd/system/syncthing%40.service"
         ${SSH} "systemctl enable syncthing@root"
         ${SSH} "systemctl start syncthing@root"
     fi

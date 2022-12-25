@@ -34,16 +34,6 @@ function run {
     $SSH "$*"
 }
 
-# function cron-update {
-    # TASK="@reboot $SCRIPT"
-    # if crontab -l 2>/dev/null | grep -F -q "$TASK"
-    # then 	
-    #     echo "task already has been added to crontab"
-    # else
-    #     (crontab -l 2>/dev/null; echo "$TASK") | crontab -
-    # fi
-# }
-
 # Read variable from file
 function load {
     local FILE="${1}"

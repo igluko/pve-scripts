@@ -438,13 +438,19 @@ function 2-step {
 
     if ${SSH} "zfs get encryption -p -H rpool/data -o value | grep -q off"
     then
+        FILE="/tmp/passphrase"
         # Задаем пароль шифрования ZFS
-        PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20 ; echo '')
+        if [[ -f $FILE ]]
+        then
+            PASSWORD=$(cat $FILE)
+        else
+            PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20 ; echo '')
+        fi
+        
         printf "\n${RED}Пароль шифрования ZFS:${NC}\n"
         read -e -p "> " -i "${PASSWORD}" PASSWORD
 
         # Создадим файл с ключом шифрования в папке /tmp
-        FILE="/tmp/passphrase"
         ${SSH} "echo ${PASSWORD} > ${FILE}"
         
         # Шифруем rpool/data

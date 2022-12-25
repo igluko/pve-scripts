@@ -44,6 +44,7 @@ fi
 # Если интерактивный режим
 if [[ -t 1 ]]
 then
+    printf "\n"
     # Добавление в крон
     TASK="0 9 * * * $SCRIPT $1"
     if crontab -l 2>/dev/null | grep -F -q "$TASK"

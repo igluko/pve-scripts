@@ -644,9 +644,9 @@ function 2-step {
         ${SSH} "mkdir -p /etc/sanoid"
         cat ${SCRIPTPATH}/sanoid.conf | ${SSH} "cat > /etc/sanoid/sanoid.conf"
         # Перечитываем конфиги сервисов
-        ${SSH} systemctl daemon-reload
+        ${SSH} "systemctl daemon-reload"
         # Проверка сервисов
-        ${SSH} systemctl status --no-pager {sanoid,sanoid-prune,sanoid.timer}
+        ${SSH} -t "systemctl status --no-pager sanoid.timer"
     fi
 
     # Шаг 24 - Проверка снимков syncoid

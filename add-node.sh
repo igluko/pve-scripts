@@ -745,12 +745,14 @@ SSH="ssh -C -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null
 # Copy public key to authorized_keys
 if ! ${SSH} "true"
 then
-    echo ""
+    echo
     FILE='/root/.ssh/id_rsa.pub'
-    if [ -f $FILE ]; then
-        ssh-copy-id -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${FILE} ${DST}
+    if [ -f ${FILE} ]; then
+        ssh-copy-id -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${DST}
+        # fix for ssh with key forwarding
+        ssh-copy-id -i ${FILE} -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${DST}
     else
-        echo "$FILE not exist"
+        echo "${FILE} not exist"
         exit 1
     fi
 fi

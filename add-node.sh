@@ -284,7 +284,10 @@ function 2-step {
         then
             if Q "Добавить IP адрес удаленного сервера в Firewall локального сервера?"
             then
-                echo "IN ACCEPT -source ${IP_REMOTE} -log nolog # ${DOMAIN_REMOTE}" >> ${FILE}
+                # Add target IP IP to local Firewall
+                MATCH="${${IP_REMOTE}}"
+                REPLACE="IN ACCEPT -source ${IP_REMOTE} -log nolog # ${DOMAIN_REMOTE}"
+                insert "${FILE}" "${REPLACE}" "${MATCH}"
             fi
         fi
         if Q "Скопировать Firewall локального сервера на удаленный сервер?"
@@ -305,8 +308,8 @@ function 2-step {
         do
             echo " - ${IP}"
             # Add IP to target host Firewall
-            REPLACE="IN ACCEPT -source ${IP} -log nolog # ${DOMAIN}"
             MATCH="${IP}"
+            REPLACE="IN ACCEPT -source ${IP} -log nolog # ${DOMAIN}"
             insert-ssh "${FILE}" "${REPLACE}" "${MATCH}"
         done
     done

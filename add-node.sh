@@ -122,7 +122,7 @@ function insert-ssh {
         MATCH="$3"
     fi
 
-    if ! ${SSH} "grep -q \"${REPLACE}\" ${FILE}"
+    if ! ${SSH} "grep -q \"${MATCH}\" ${FILE}"
     then
         ${SSH} "echo \"${REPLACE}\" >> ${FILE}"
     else
@@ -145,7 +145,7 @@ function insert {
         MATCH="$3"
     fi
 
-    if ! eval "grep -q \"${REPLACE}\" ${FILE}"
+    if ! eval "grep -q \"${MATCH}\" ${FILE}"
     then
         eval "echo \"${REPLACE}\" >> ${FILE}"
     else

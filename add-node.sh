@@ -331,7 +331,7 @@ function 2-step {
         # # printf "\n${RED}Откладываем выключение firewall на 5 минут, PID=${PID}${NC}\n"
 
         # Включаем firewall
-        ${SSH} "sed -i 's/enable: 0/enable: 1/g' ${FILE}
+        ${SSH} "sed -i 's/enable: 0/enable: 1/g' ${FILE}"
         printf "\nFirewall activated. Please check connect to ${GREEN}https://$(hostname -i | xargs):8006${NC}\n"
         read -e -p "> " -i "ok"
 

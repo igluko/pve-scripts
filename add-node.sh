@@ -285,7 +285,7 @@ function 2-step {
             if Q "Добавить IP адрес удаленного сервера в Firewall локального сервера?"
             then
                 # Add target IP IP to local Firewall
-                MATCH="${${IP_REMOTE}}"
+                MATCH="${IP_REMOTE}"
                 REPLACE="IN ACCEPT -source ${IP_REMOTE} -log nolog # ${DOMAIN_REMOTE}"
                 insert "${FILE}" "${REPLACE}" "${MATCH}"
             fi

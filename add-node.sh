@@ -494,18 +494,18 @@ function 2-step {
                 if pvesubscription set ${LICENSE}
                 then
                     # Если пользователь выбрал n, выходим из цикла
-                    break
+                    break   
                 fi
             else
                 break
             fi
         done
         # Спрашиваем у пользователя установить ли комьюнити репозитории
-        if ! ${SSH} "${PVE_SCRIPTS}\setup-community-repo.sh --check"
+        if ! ${SSH} "${PVE_SCRIPTS}/setup-community-repo.sh --check"
         then
             if Q "Do you want to install community repositories?"
             then 
-                ${SSH} "${PVE_SCRIPTS}\setup-community-repo.sh"
+                ${SSH} "${PVE_SCRIPTS}/setup-community-repo.sh"
             fi
         fi
     fi

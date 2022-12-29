@@ -387,6 +387,86 @@ function 2-step {
         cat "${SCRIPTPATH}/${FILE}" | ${SSH} "cat >> ${FILE}"
     fi
 
+    # Шаг 12 - Настройка Syncthing
+    printf "\n${ORANGE}Шаг 8 - Настройка Syncthing${NC}\n"
+    # Установка
+    if ! ${SSH} "which syncthing >/dev/null"
+    then
+        ${SSH} "curl -s -o /usr/share/keyrings/syncthing-archive-keyring.gpg https://syncthing.net/release-key.gpg"
+        ${SSH} "echo \"deb [signed-by=/usr/share/keyrings/syncthing-archive-keyring.gpg] https://apt.syncthing.net/ syncthing stable\" | tee /etc/apt/sources.list.d/syncthing.list"
+        ${SSH} "printf \"Package: *\nPin: origin apt.syncthing.net\nPin-Priority: 990\n\" | tee /etc/apt/preferences.d/syncthing"
+        ${SSH} "apt update -y || true"
+        ${SSH} "apt install -y syncthing"
+        ${SSH} "systemctl enable syncthing@root"
+        ${SSH} "systemctl start syncthing@root"
+    fi
+    # Проверяем результат
+    ${SSH} -t "systemctl status --no-pager syncthing@root"
+
+    # Добавляем папки
+    FOLDER_NAME="iso"
+    FOLDER_PATH="/var/lib/vz/template/iso"
+    if ! ${SSH} "syncthing cli config folders list | grep -q ${FOLDER_NAME}"
+    then
+        ${SSH} "syncthing cli config folders add --id ${FOLDER_NAME} --path ${FOLDER_PATH}"
+    fi
+
+    # Настройка
+    if Q "Объединить локальную и удаленную ноды Syncthing?"
+    then
+        # add local device to remote Syncthing
+        ID1=$(syncthing --device-id)
+        ${SSH} "syncthing cli config devices add --device-id ${ID1}"
+        ${SSH} "syncthing cli config devices ${ID1} auto-accept-folders set true"
+        ${SSH} "syncthing cli config devices ${ID1} introducer set true"
+        # add remote device to local Syncthing
+        ID2=$(${SSH} syncthing --device-id)
+        eval "syncthing cli config devices add --device-id ${ID2}"
+        eval "syncthing cli config devices ${ID2} auto-accept-folders set true"
+        eval "syncthing cli config devices ${ID2} introducer set true"
+        
+        # add local folders to remote
+        for FOLDER in $(syncthing cli config folders list)
+        do
+            eval "syncthing cli config folders ${FOLDER} devices add --device-id ${ID2}"
+        done
+        # Проверка
+        printf "\n${ORANGE}local devices list:${NC}\n"
+        eval "syncthing cli config devices list"
+        printf "\n${ORANGE}remote devices list:${NC}\n"
+        ${SSH} "syncthing cli config devices list"
+        printf "\n${ORANGE}local folder list:${NC}\n"
+        eval "syncthing cli config folders list"
+        printf "\n${ORANGE}remote folder list:${NC}\n"
+        ${SSH} "syncthing cli config folders list"
+    fi
+
+    # Активируем shared режим для local storage
+    ${SSH} pvesm set local --shared 1
+
+    # Шаг 12.1 - Копирование /etc/environment
+    printf "\n${ORANGE}Шаг 12.1 - Копирование /etc/environment${NC}\n"
+
+    if ! Q "Скопировать /etc/environment на удаленный хост?"
+    FILE="/etc/environment"
+    then
+        cat ${FILE} | ${SSH} "cat > ${FILE}"
+    fi
+
+    # Шаг 13 - Проверка наличия скриптов
+    printf "\n${ORANGE}Шаг 13 - Проверка наличия скриптов${NC}\n"
+
+    PVE_SCRIPTS="/root/Sync/pve-scripts"
+
+    if ! ${SSH} [[ -e ${PVE_SCRIPTS} ]]
+    then
+        # ${SSH} "cd /root/Sync && git clone git@github.com:igluko/pve-scripts.git"
+        ${SSH} -t "cd /root/Sync && git clone https://github.com/igluko/pve-scripts.git"
+    else
+        # ${SSH} "cd /root/Sync && git pull git@github.com:igluko/pve-scripts.git"
+        ${SSH} -t "cd ${PVE_SCRIPTS} && git pull https://github.com/igluko/pve-scripts.git"
+    fi
+
     # Шаг 6 - Download virtio-win.iso
     printf "\n${ORANGE}Шаг 6 - Download virtio-win.iso${NC}\n"
     WGET="wget -N --progress=bar:force --content-disposition --directory-prefix=/var/lib/vz/template/iso/"
@@ -420,6 +500,13 @@ function 2-step {
                 break
             fi
         done
+    
+    elif ! {$SSH} "${PVE_SCRIPTS}\setup-community-repo.sh --check"
+    then
+        if Q "Do you want to install community repositories?"
+        then 
+            ${SSH} "${PVE_SCRIPTS}\setup-community-repo.sh"
+        fi
     fi
 
     #  Меняем RU репозитории на обычные, RU еле шевелятся:
@@ -521,84 +608,6 @@ function 2-step {
         fi
         # Проверяем результат
         # run "pvecm status"
-    fi
-
-    # Шаг 12 - Настройка Syncthing
-    printf "\n${ORANGE}Шаг 8 - Настройка Syncthing${NC}\n"
-    # Установка
-    if ! ${SSH} "which syncthing >/dev/null"
-    then
-        ${SSH} "curl -s -o /usr/share/keyrings/syncthing-archive-keyring.gpg https://syncthing.net/release-key.gpg"
-        ${SSH} "echo \"deb [signed-by=/usr/share/keyrings/syncthing-archive-keyring.gpg] https://apt.syncthing.net/ syncthing stable\" | tee /etc/apt/sources.list.d/syncthing.list"
-        ${SSH} "printf \"Package: *\nPin: origin apt.syncthing.net\nPin-Priority: 990\n\" | tee /etc/apt/preferences.d/syncthing"
-        ${SSH} "apt update -y || true"
-        ${SSH} "apt install -y syncthing"
-        ${SSH} "systemctl enable syncthing@root"
-        ${SSH} "systemctl start syncthing@root"
-    fi
-    # Проверяем результат
-    ${SSH} -t "systemctl status --no-pager syncthing@root"
-
-    # Добавляем папки
-    FOLDER_NAME="iso"
-    FOLDER_PATH="/var/lib/vz/template/iso"
-    if ! ${SSH} "syncthing cli config folders list | grep -q ${FOLDER_NAME}"
-    then
-        ${SSH} "syncthing cli config folders add --id ${FOLDER_NAME} --path ${FOLDER_PATH}"
-    fi
-
-    # Настройка
-    if Q "Объединить локальную и удаленную ноды Syncthing?"
-    then
-        # add local device to remote Syncthing
-        ID1=$(syncthing --device-id)
-        ${SSH} "syncthing cli config devices add --device-id ${ID1}"
-        ${SSH} "syncthing cli config devices ${ID1} auto-accept-folders set true"
-        ${SSH} "syncthing cli config devices ${ID1} introducer set true"
-        # add remote device to local Syncthing
-        ID2=$(${SSH} syncthing --device-id)
-        eval "syncthing cli config devices add --device-id ${ID2}"
-        eval "syncthing cli config devices ${ID2} auto-accept-folders set true"
-        eval "syncthing cli config devices ${ID2} introducer set true"
-        
-        # add local folders to remote
-        for FOLDER in $(syncthing cli config folders list)
-        do
-            eval "syncthing cli config folders ${FOLDER} devices add --device-id ${ID2}"
-        done
-        # Проверка
-        printf "\n${ORANGE}local devices list:${NC}\n"
-        eval "syncthing cli config devices list"
-        printf "\n${ORANGE}remote devices list:${NC}\n"
-        ${SSH} "syncthing cli config devices list"
-        printf "\n${ORANGE}local folder list:${NC}\n"
-        eval "syncthing cli config folders list"
-        printf "\n${ORANGE}remote folder list:${NC}\n"
-        ${SSH} "syncthing cli config folders list"
-    fi
-
-    # Активируем shared режим для local storage
-    ${SSH} pvesm set local --shared 1
-
-    # Шаг 12.1 - Копирование /etc/environment
-    printf "\n${ORANGE}Шаг 12.1 - Копирование /etc/environment${NC}\n"
-
-    if ! Q "Скопировать /etc/environment на удаленный хост?"
-    FILE="/etc/environment"
-    then
-        cat ${FILE} | ${SSH} "cat > ${FILE}"
-    fi
-
-    # Шаг 13 - Проверка наличия скриптов
-    printf "\n${ORANGE}Шаг 13 - Проверка наличия скриптов${NC}\n"
-
-    if ! ${SSH} [[ -e /root/Sync/pve-scripts ]]
-    then
-        # ${SSH} "cd /root/Sync && git clone git@github.com:igluko/pve-scripts.git"
-        ${SSH} -t "cd /root/Sync && git clone https://github.com/igluko/pve-scripts.git"
-    else
-        # ${SSH} "cd /root/Sync && git pull git@github.com:igluko/pve-scripts.git"
-        ${SSH} -t "cd /root/Sync/pve-scripts && git pull https://github.com/igluko/pve-scripts.git"
     fi
 
     # Шаг 13.1 - Патч Proxmox для работы с шифрованным ZFS и pve-zsync

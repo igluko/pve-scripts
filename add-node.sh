@@ -500,12 +500,13 @@ function 2-step {
                 break
             fi
         done
-    
-    elif ! {$SSH} "${PVE_SCRIPTS}\setup-community-repo.sh --check"
-    then
-        if Q "Do you want to install community repositories?"
-        then 
-            ${SSH} "${PVE_SCRIPTS}\setup-community-repo.sh"
+        # Спрашиваем у пользователя установить ли комьюнити репозитории
+        if ! {$SSH} "${PVE_SCRIPTS}\setup-community-repo.sh --check"
+        then
+            if Q "Do you want to install community repositories?"
+            then 
+                ${SSH} "${PVE_SCRIPTS}\setup-community-repo.sh"
+            fi
         fi
     fi
 

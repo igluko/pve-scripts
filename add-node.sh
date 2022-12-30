@@ -444,6 +444,22 @@ function 2-step {
     # Активируем shared режим для local storage
     ${SSH} pvesm set local --shared 1
 
+    # Проверяем, что синхронизация завершена
+    API_KEY=$(${SSH} syncthing cli config gui apikey get)
+    URL="http://localhost:8384/rest/db/completion"
+    printf "\n${ORANGE}Checking that replication is complete:${NC}\n"
+    while true
+    do
+        sleep 5
+        COMPLETION=$(${SSH} "curl -s -X GET -H \"X-API-Key: ${API_KEY}\" ${URL}")
+        echo "${COMPLETION}"
+        PERCENTS=$(echo $COMPLETION | jq .completion)
+        if [[ ${PERCENTS} -eq 100 ]]
+        then
+            break
+        fi
+    done
+
     # Шаг 12.1 - Копирование /etc/environment
     printf "\n${ORANGE}Шаг 12.1 - Копирование /etc/environment${NC}\n"
 

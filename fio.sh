@@ -70,26 +70,34 @@ do
         continue
     fi
 
-    # Проверяем, что раздел существует на диске. Если нет - создаем раздел.
+    # # Проверяем, что раздел существует на диске. Если нет - создаем раздел.
+    # printf "\n${ORANGE}Проверяем, что раздел /dev/${DISK}p${PART} существует${NC}\n"
+    # if ! lsblk | grep -q ${DISK}p${PART}
+    # then
+    #     printf "\n${ORANGE}Раздел ${PART} не существует, создаем его${NC}\n"
+    #     (
+    #         echo n        # Add a new partition
+    #         echo ${PART}  # Partition number
+    #         echo          # First sector (Accept default: 1)
+    #         echo          # Last sector (Accept default: varies)
+    #         echo w        # Write changes
+    #     ) | fdisk /dev/${DISK}
+
+    #     # Снова проверяем, что раздел существует на диске
+    #     printf "\n${ORANGE}Снова проверяем, что раздел /dev/${DISK}p${PART} существует${NC}\n"
+    #     if ! lsblk | grep -q ${DISK}p${PART}
+    #     then
+    #         printf "${RED}Ошибка: не удалось создать раздел /dev/${DISK}p${PART}${NC}\n"
+    #         continue
+    #     fi
+    # fi
+
+    # Проверяем, что раздел существует на диске.
     printf "\n${ORANGE}Проверяем, что раздел /dev/${DISK}p${PART} существует${NC}\n"
     if ! lsblk | grep -q ${DISK}p${PART}
     then
-        printf "\n${ORANGE}Раздел ${PART} не существует, создаем его${NC}\n"
-        (
-            echo n        # Add a new partition
-            echo ${PART}  # Partition number
-            echo          # First sector (Accept default: 1)
-            echo          # Last sector (Accept default: varies)
-            echo w        # Write changes
-        ) | fdisk /dev/${DISK}
-
-        # Снова проверяем, что раздел существует на диске
-        printf "\n${ORANGE}Снова проверяем, что раздел /dev/${DISK}p${PART} существует${NC}\n"
-        if ! lsblk | grep -q ${DISK}p${PART}
-        then
-            printf "${RED}Ошибка: не удалось создать раздел /dev/${DISK}p${PART}${NC}\n"
-            continue
-        fi
+        printf "\n${REF}Раздел ${PART} не существует, пожалуйста создайте его перед запуском теста${NC}\n"
+        continue
     fi
 
     # Выводим информацию о диске и материнской плате

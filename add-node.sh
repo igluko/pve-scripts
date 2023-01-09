@@ -174,15 +174,21 @@ function 1-step {
     printf "\n${GREEN}hostnamectl${NC}\n"
     ${SSH} "hostnamectl"
 
+    # Show nvme
+    printf "\n${GREEN}nvme-list${NC}\n"
+    ${SSH} "nvme list"
+
+    if Q "Format nvme disks?"
+    then
+        ${SSH} "nvme format /dev/nvme0n1"
+        ${SSH} "nvme format /dev/nvme1n1"
+    fi
+
     # Show ip
     printf "\n${GREEN}ip addr${NC}\n"
     ${SSH} "ip addr | grep -E 'altname|inet '"
     printf "\n${GREEN}ip route${NC}\n"
     ${SSH} "ip route | grep default"
-
-    # Show nvme
-    printf "\n${GREEN}nvme-list${NC}\n"
-    ${SSH} "nvme list"
 
     Q "Starting to install PVE" || exit
 
@@ -197,10 +203,11 @@ function 1-step {
     VNC_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13 ; echo '')
     printf "${ORANGE} VNC Password is ${GREEN}${VNC_PASSWORD}${NC}\n"
 
+    # Start KVM
     eval $SSH "pkill qemu-system-x86 || true"
+    printf "${RED} Please open VNC console to ${DST_IP}, install PVE and press Next${NC}\n"
     $SSH "printf \"change vnc password\n%s\n\" ${VNC_PASSWORD} | qemu-system-x86_64 -enable-kvm -smp 4 -m 4096 -boot once=d -cdrom ./$ISO -drive file=/dev/nvme0n1,format=raw,cache=none,index=0,media=disk -drive file=/dev/nvme1n1,format=raw,cache=none,index=1,media=disk -vnc 0.0.0.0:0,password -monitor stdio" >/dev/null &
    
-    printf "${RED} Please open VNC console to ${DST_IP}, install PVE and press Next${NC}\n"
     read -e -p "> " -i "Next"
     eval $SSH "pkill qemu-system-x86 || true"
 

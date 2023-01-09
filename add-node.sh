@@ -736,7 +736,7 @@ function 2-step {
         if ${SSH} -t "/root/Sync/pve-scripts/backup-check.py"
         then
             # Добавляем скрипт в крон и выходим
-            ${SSH} "/root/Sync/pve-scripts/backup-check.py -add_cron" 
+            ${SSH} -t "/root/Sync/pve-scripts/backup-check.py -add_cron" 
             break
         fi
     done

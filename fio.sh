@@ -96,7 +96,7 @@ do
     printf "\n${ORANGE}Проверяем, что раздел /dev/${DISK}p${PART} существует${NC}\n"
     if ! lsblk | grep -q ${DISK}p${PART}
     then
-        printf "\n${REF}Раздел ${PART} не существует, пожалуйста создайте его перед запуском теста${NC}\n"
+        printf "\n${RED}Раздел ${PART} не существует, пожалуйста создайте его перед запуском теста${NC}\n"
         continue
     fi
 

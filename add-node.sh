@@ -155,37 +155,52 @@ function insert {
     fi
 }
 
-function 1-step {
-    printf "${ORANGE}"
-    echo "Start 2 step"
-    printf "${NC}"
-
+function 0-step {
     # 0 BIOS
-    echo "Please check BIOS"
+    printf "\n${ORANGE}Please check BIOS${NC}\n"
     read -e -p "> " -i "ok"
 
     # 1 ISO
     echo "Please activate RescueCD in Hetzner Robot panel and Execute an automatic hardware reset"
     read -e -p "> " -i "ok"
+}
 
-    ISO="proxmox-ve_7.3-1.iso"
-    eval ${SSH} "wget -N http://download.proxmox.com/iso/$ISO"
+function 1-step {
+    # Install soft
+    printf "\n${ORANGE}apt install${NC}\n"
+    apt-install nvme-cli
 
-    # ID_NET_NAME_PATH=$($SSH "udevadm test /sys/class/net/eth0 2>/dev/null | grep ID_NET_NAME_PATH | cut -s -d = -f 2-")
-    # echo "$ID_NET_NAME_PATH"
-    printf "${WARN} " 
-    echo "IP = ${DST_IP}"
-    # printf "${WARN} " 
-    # echo "ID_NET_NAME_PATH = ${ID_NET_NAME_PATH}"
+    # Show node info
+    printf "\n${GREEN}hostnamectl${NC}\n"
+    ${SSH} "hostnamectl"
+
+    # Show ip
+    printf "\n${GREEN}ip addr${NC}\n"
+    ${SSH} "ip addr | grep -E 'altname|inet '"
+    printf "\n${GREEN}ip route${NC}\n"
+    ${SSH} "ip route | grep default"
+
+    # Show nvme
+    printf "\n${GREEN}nvme-list${NC}\n"
+    ${SSH} "nvme list"
+
+    Q "Starting to install PVE" || exit
+
+    # ISO="proxmox-ve_7.3-1.iso"
+    # eval ${SSH} "wget -N http://download.proxmox.com/iso/$ISO"
+    URL=$(curl -s https://www.proxmox.com/en/downloads/category/iso-images-pve | grep -o "/en/downloads?.*" | head -n1 | sed 's/".*//')
+    WGET="wget -q --show-progress -N --progress=bar:force --content-disposition"
+    ${SSH} "${WGET} 'https://www.proxmox.com$URL'"
+    ISO=$(${SSH} "ls proxmox*")
 
     # generate random password
     VNC_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13 ; echo '')
-    printf "${WARN} VNC Password is ${GREEN}${VNC_PASSWORD}${NC}\n"
+    printf "${ORANGE} VNC Password is ${GREEN}${VNC_PASSWORD}${NC}\n"
 
     eval $SSH "pkill qemu-system-x86 || true"
     $SSH "printf \"change vnc password\n%s\n\" ${VNC_PASSWORD} | qemu-system-x86_64 -enable-kvm -smp 4 -m 4096 -boot once=d -cdrom ./$ISO -drive file=/dev/nvme0n1,format=raw,cache=none,index=0,media=disk -drive file=/dev/nvme1n1,format=raw,cache=none,index=1,media=disk -vnc 0.0.0.0:0,password -monitor stdio" >/dev/null &
    
-    echo "Please open VNC console, install PVE and press Next"
+    printf "${RED} Please open VNC console to ${DST_IP}, install PVE and press Next${NC}\n"
     read -e -p "> " -i "Next"
     eval $SSH "pkill qemu-system-x86 || true"
 
@@ -485,7 +500,7 @@ function 2-step {
 
     # Шаг 6 - Download virtio-win.iso
     printf "\n${ORANGE}Шаг 6 - Download virtio-win.iso${NC}\n"
-    WGET="wget -N --progress=bar:force --content-disposition --directory-prefix=/var/lib/vz/template/iso/"
+    WGET="wget -q --show-progress -N --progress=bar:force --content-disposition --directory-prefix=/var/lib/vz/template/iso/"
     # Latest:
     ${SSH} -t "${WGET} https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"
     # Latest for windows 7:
@@ -776,7 +791,8 @@ if ! ${SSH} "true"
 then
     echo
     FILE='/root/.ssh/id_rsa.pub'
-    if [ -f ${FILE} ]; then
+    if [[ -f ${FILE} ]]
+    then
         ssh-copy-id -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${DST}
         # fix for ssh with key forwarding
         ssh-copy-id -i ${FILE} -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${DST}
@@ -787,7 +803,7 @@ then
 fi
 
 # check step
-if ! $SSH "[[ -d /etc/pve ]]"
+if ! ${SSH} "[[ -d /etc/pve ]]"
 then
     1-step
 else

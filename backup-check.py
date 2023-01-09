@@ -46,7 +46,8 @@ def add_cron():
     fname = os.path.basename(sys.argv[0])
     for job in cron:
         if fname in str(job):
-            sys.exit(p_yellow('Task already has been added to crontab: ') + str(job))
+            print(p_yellow('Task already has been added to crontab: ') + str(job))
+            sys.exit(0)
     job = cron.new(command=sys.path[0]+'/'+fname+' -t 8 -silent -skip_id_from 800')
     job.hour.on(8)
     job.minute.on(0)
@@ -90,8 +91,8 @@ def get_pbs_stor(proxmox):
             break
         except Exception:
             time.sleep(5)
-
     # Оставляем сторадж с type = pbs
+    storage = ''
     for stor in storages:
         if stor['type'] == 'pbs':
             storage = stor
@@ -184,6 +185,13 @@ proxmox = ProxmoxAPI(socket.gethostname(), user="root", backend='openssh', servi
 delta_time, silent, skip_id_from, tg = check_args()
 
 storage = get_pbs_stor(proxmox)
+if storage == '' :
+    msg = 'Not found PBS storages'
+    if not silent:
+        print(p_yellow(msg))
+    if tg:
+        send_tg('<b>' + socket.gethostname() +':</b>\n' + msg)
+    sys.exit(0)
 backups_short = get_backup_list(storage, delta_time)
 vms = get_vm_ids(proxmox, skip_id_from)
 vms_status = check_vm_backups(vms, backups_short)

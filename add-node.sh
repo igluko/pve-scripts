@@ -629,13 +629,18 @@ function 2-step {
         run "hostname -i"
 
         # Если на локальной ноде есть кластер, предлагаем добавить удаленную ноду в него
-        if eval "pvecm status" 2>&1 >/dev/null && Q "Добавить ноду в существующий кластер"
+        if eval "pvecm status" 2>&1 >/dev/null
         then
+            while true
+            do
+                Q "Добавить ноду в существующий кластер" || break
                 # echo "Please take snapshot on ALL nodes, and add node to cluster"
                 # read -e -p "> " -i "ok"
                 # #$SSH "zfs snapshot -r rpool@before_cluster-${date +%s}"
                 # pvecm add IP_ADDRESS_OF_EXISTING_NODE
-                echo "Не реализовано"
+                ${SSH} -t "pvecm add ${IP_LOCAL}" && break
+            done
+
         elif Q "Создать новый кластер?"
         then
             # Создание защитных снимков

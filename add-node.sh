@@ -485,9 +485,9 @@ function 2-step {
     # Шаг 12.1 - Копирование /etc/environment
     printf "\n${ORANGE}Шаг 12.1 - Копирование /etc/environment${NC}\n"
 
-    if ! Q "Скопировать /etc/environment на удаленный хост?"
-    FILE="/etc/environment"
+    if Q "Скопировать /etc/environment на удаленный хост?"
     then
+        FILE="/etc/environment"
         cat ${FILE} | ${SSH} "cat > ${FILE}"
     fi
 

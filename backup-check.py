@@ -52,7 +52,8 @@ def add_cron():
     job.hour.on(8)
     job.minute.on(0)
     cron.write()
-    sys.exit(p_green('Task has been added to crontab: ') + str(job))
+    print(p_green('Task has been added to crontab: ') + str(job))
+    sys.exit(0)
 
 # Проверка входных аргументов
 def check_args():

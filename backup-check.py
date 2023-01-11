@@ -91,7 +91,7 @@ def get_pbs_stor(proxmox):
             storages = proxmox.storage.get()
             break
         except Exception:
-            time.sleep(5)
+            time.sleep(30)
     # Оставляем сторадж с type = pbs
     storage = ''
     for stor in storages:

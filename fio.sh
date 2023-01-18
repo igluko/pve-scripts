@@ -39,7 +39,6 @@ apt-install fio
 apt-install jq
 apt-install fdisk
 
-
 DISKS="nvme0n1 nvme1n1"
 PART="127"
 
@@ -47,15 +46,6 @@ if [[ $# -ne 0 ]]
 then
     DISKS=$*
 fi
-
-# if [[ $# -eq 0 ]]
-# then
-#     DISKS="nvme0n1 nvme1n1"
-# else
-#     DISKS=$*
-# fi
-
-# PART="127"
 
 for DISK in $DISKS
 do
@@ -69,28 +59,6 @@ do
         lsblk | grep nvme
         continue
     fi
-
-    # # Проверяем, что раздел существует на диске. Если нет - создаем раздел.
-    # printf "\n${ORANGE}Проверяем, что раздел /dev/${DISK}p${PART} существует${NC}\n"
-    # if ! lsblk | grep -q ${DISK}p${PART}
-    # then
-    #     printf "\n${ORANGE}Раздел ${PART} не существует, создаем его${NC}\n"
-    #     (
-    #         echo n        # Add a new partition
-    #         echo ${PART}  # Partition number
-    #         echo          # First sector (Accept default: 1)
-    #         echo          # Last sector (Accept default: varies)
-    #         echo w        # Write changes
-    #     ) | fdisk /dev/${DISK}
-
-    #     # Снова проверяем, что раздел существует на диске
-    #     printf "\n${ORANGE}Снова проверяем, что раздел /dev/${DISK}p${PART} существует${NC}\n"
-    #     if ! lsblk | grep -q ${DISK}p${PART}
-    #     then
-    #         printf "${RED}Ошибка: не удалось создать раздел /dev/${DISK}p${PART}${NC}\n"
-    #         continue
-    #     fi
-    # fi
 
     # Проверяем, что раздел существует на диске.
     printf "\n${ORANGE}Проверяем, что раздел /dev/${DISK}p${PART} существует${NC}\n"
@@ -145,12 +113,5 @@ do
     fio-run --name=Rnd-4k-Q1T1-Read --rw=read --bs=4k --iodepth=1 | jq .jobs[0].read.iops | sed 's/\..*//'
     fio-run --name=Rnd-4k-Q1T1-Write --rw=write --bs=4k --iodepth=1 | jq .jobs[0].write.iops | sed 's/\..*//'
 
-    # # Удаляем тестовый раздел
-    # printf "\n${ORANGE}Удаляем тестовый раздел /dev/${DISK}p${PART}${NC}\n"
-    # (
-    #     echo d       # Add a new partition
-    #     echo ${PART} # Partition number
-    #     echo w       # Write changes
-    # ) | fdisk /dev/${DISK}
 done
 

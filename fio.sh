@@ -108,8 +108,8 @@ do
 
     echo -e "Rnd-4k-Q32T16-Read \t iops"
     echo -e "Rnd-4k-Q32T16-Write \t iops"
-    echo -e "Rnd-4k-Q32T1-Read \t iops"
-    echo -e "Rnd-4k-Q32T1-Write \t iops"
+    # echo -e "Rnd-4k-Q32T1-Read \t iops"
+    # echo -e "Rnd-4k-Q32T1-Write \t iops"
     echo -e "Rnd-4k-Q1T1-Read \t iops"
     echo -e "Rnd-4k-Q1T1-Write \t iops"
 
@@ -123,8 +123,8 @@ do
     fio-run --rw=read --bs=128k --iodepth=32 | jq .jobs[0].read.bw
     fio-run --rw=write --bs=128k --iodepth=32 | jq .jobs[0].write.bw
 
-    fio-run --rw=read --bs=4k --iodepth=32 --numjobs=16 | jq .jobs[0].read.iops | sed 's/\..*//'
-    fio-run --rw=write --bs=4k --iodepth=32 --numjobs=16 | jq .jobs[0].write.iops | sed 's/\..*//'
+    # fio-run --rw=read --bs=4k --iodepth=32 --numjobs=16 | jq .jobs[0].read.iops | sed 's/\..*//'
+    # fio-run --rw=write --bs=4k --iodepth=32 --numjobs=16 | jq .jobs[0].write.iops | sed 's/\..*//'
     fio-run --rw=read --bs=4k --iodepth=32 | jq .jobs[0].read.iops | sed 's/\..*//'
     fio-run --rw=write --bs=4k --iodepth=32 | jq .jobs[0].write.iops | sed 's/\..*//'
     fio-run --rw=read --bs=4k --iodepth=1 | jq .jobs[0].read.iops | sed 's/\..*//'

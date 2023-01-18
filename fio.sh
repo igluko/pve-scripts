@@ -93,7 +93,7 @@ do
     echo $TEST_PATH
 
     function fio-run {
-        fio ${TEST_PATH} --group_reporting --output-format=json --time_based --runtime=6 ${SIZE} --ioengine=libaio --direct=1 --stonewall $*
+        fio ${TEST_PATH} --name=fio.data --group_reporting --output-format=json --time_based --runtime=6 ${SIZE} --ioengine=libaio --direct=1 --stonewall $*
     }
 
     # Выводим заголовки тестов
@@ -115,20 +115,20 @@ do
 
     # Выводим результаты тестов
     printf "\n${GREEN}Результаты:${NC}\n"
-    fio-run --name=Seq-1m-Q8T1-Read --rw=read --bs=1m --iodepth=8 | jq .jobs[0].read.bw
-    fio-run --name=Seq-1m-Q8T1-Write --rw=write --bs=1m --iodepth=8 | jq .jobs[0].write.bw
-    fio-run --name=Seq-1m-Q1T1-Read --rw=read --bs=1m --iodepth=1 | jq .jobs[0].read.bw
-    fio-run --name=Seq-1m-Q1T1-Write --rw=write --bs=1m --iodepth=1 | jq .jobs[0].write.bw
+    fio-run --rw=read --bs=1m --iodepth=8 | jq .jobs[0].read.bw
+    fio-run --rw=write --bs=1m --iodepth=8 | jq .jobs[0].write.bw
+    fio-run --rw=read --bs=1m --iodepth=1 | jq .jobs[0].read.bw
+    fio-run --rw=write --bs=1m --iodepth=1 | jq .jobs[0].write.bw
 
-    fio-run --name=Seq-128k-Q32T1-Read --rw=read --bs=128k --iodepth=32 | jq .jobs[0].read.bw
-    fio-run --name=Seq-128k-Q32T1-Write --rw=write --bs=128k --iodepth=32 | jq .jobs[0].write.bw
+    fio-run --rw=read --bs=128k --iodepth=32 | jq .jobs[0].read.bw
+    fio-run --rw=write --bs=128k --iodepth=32 | jq .jobs[0].write.bw
 
-    fio-run --name=Rnd-4k-Q32T16-Read --rw=read --bs=4k --iodepth=32 --numjobs=16 | jq .jobs[0].read.iops | sed 's/\..*//'
-    fio-run --name=Rnd-4k-Q32T16-Write --rw=write --bs=4k --iodepth=32 --numjobs=16 | jq .jobs[0].write.iops | sed 's/\..*//'
-    fio-run --name=Rnd-4k-Q32T1-Read --rw=read --bs=4k --iodepth=32 | jq .jobs[0].read.iops | sed 's/\..*//'
-    fio-run --name=Rnd-4k-Q32T1-Write --rw=write --bs=4k --iodepth=32 | jq .jobs[0].write.iops | sed 's/\..*//'
-    fio-run --name=Rnd-4k-Q1T1-Read --rw=read --bs=4k --iodepth=1 | jq .jobs[0].read.iops | sed 's/\..*//'
-    fio-run --name=Rnd-4k-Q1T1-Write --rw=write --bs=4k --iodepth=1 | jq .jobs[0].write.iops | sed 's/\..*//'
+    fio-run --rw=read --bs=4k --iodepth=32 --numjobs=16 | jq .jobs[0].read.iops | sed 's/\..*//'
+    fio-run --rw=write --bs=4k --iodepth=32 --numjobs=16 | jq .jobs[0].write.iops | sed 's/\..*//'
+    fio-run --rw=read --bs=4k --iodepth=32 | jq .jobs[0].read.iops | sed 's/\..*//'
+    fio-run --rw=write --bs=4k --iodepth=32 | jq .jobs[0].write.iops | sed 's/\..*//'
+    fio-run --rw=read --bs=4k --iodepth=1 | jq .jobs[0].read.iops | sed 's/\..*//'
+    fio-run --rw=write --bs=4k --iodepth=1 | jq .jobs[0].write.iops | sed 's/\..*//'
 
 done
 

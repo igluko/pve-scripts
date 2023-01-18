@@ -39,6 +39,12 @@ apt-install fio
 apt-install jq
 apt-install fdisk
 
+# Выводим информацию о хосте и материнской плате
+printf "\n${GREEN}Информация:${NC}\n"
+hostname
+cat /sys/devices/virtual/dmi/id/board_{vendor,name}
+echo
+
 DISKS="nvme0n1 nvme1n1"
 PART="127"
 
@@ -49,34 +55,45 @@ fi
 
 for DISK in $DISKS
 do
-    # Проверяем, что диск существует
-    printf "\n${ORANGE}Проверяем, что диск  /dev/${DISK} существует${NC}\n"
-    if ! lsblk | grep -q ${DISK}
+    # Если это не диск, а папка
+    if [[ -d $DISK ]]
     then
-        printf "${RED}Ошибка: диск /dev/${DISK} не найден${NC}\n"
-        # Выводим информацию о текущих дисках
-        printf "\n${ORANGE}Информация о текущих NVME дисках${NC}\n"
-        lsblk | grep nvme
-        continue
+        # Задаем путь теста
+        TEST_PATH="--directory=${DISK}"
+        SIZE="--size=100G"
+    else
+        # Проверяем, что диск существует
+        printf "\n${ORANGE}Проверяем, что диск  /dev/${DISK} существует${NC}\n"
+        if ! lsblk | grep -q ${DISK}
+        then
+            printf "${RED}Ошибка: диск /dev/${DISK} не найден${NC}\n"
+            # Выводим информацию о текущих дисках
+            printf "\n${ORANGE}Информация о текущих NVME дисках${NC}\n"
+            lsblk | grep nvme
+            continue
+        fi
+
+        # Проверяем, что раздел существует на диске.
+        printf "\n${ORANGE}Проверяем, что раздел /dev/${DISK}p${PART} существует${NC}\n"
+        if ! lsblk | grep -q ${DISK}p${PART}
+        then
+            printf "\n${RED}Раздел ${PART} не существует, пожалуйста создайте его перед запуском теста${NC}\n"
+            continue
+        fi
+
+        # Выводим информацию о диске
+        cat /sys/class/block/${DISK}/device/model
+        cat /sys/class/block/${DISK}/device/serial
+
+        # Задаем путь теста
+        TEST_PATH="--filename=/dev/${DISK}p${PART}"
+        SIZE="--size=100%"
     fi
 
-    # Проверяем, что раздел существует на диске.
-    printf "\n${ORANGE}Проверяем, что раздел /dev/${DISK}p${PART} существует${NC}\n"
-    if ! lsblk | grep -q ${DISK}p${PART}
-    then
-        printf "\n${RED}Раздел ${PART} не существует, пожалуйста создайте его перед запуском теста${NC}\n"
-        continue
-    fi
-
-    # Выводим информацию о диске и материнской плате
-    printf "\n${GREEN}Информация:${NC}\n"
-    hostname
-    cat /sys/class/block/${DISK}/device/model
-    cat /sys/class/block/${DISK}/device/serial
-    cat /sys/devices/virtual/dmi/id/board_{vendor,name}
+    echo $TEST_PATH
 
     function fio-run {
-        fio --filename=/dev/${DISK}p${PART} --group_reporting --output-format=json --time_based --runtime=60 --size=100% --ioengine=libaio --direct=1 --stonewall $*
+        fio ${TEST_PATH} --group_reporting --output-format=json --time_based --runtime=6 ${SIZE} --ioengine=libaio --direct=1 --stonewall $*
     }
 
     # Выводим заголовки тестов

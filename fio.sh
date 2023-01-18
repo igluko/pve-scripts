@@ -42,7 +42,7 @@ apt-install fdisk
 # Выводим информацию о хосте и материнской плате
 printf "\n${GREEN}Информация:${NC}\n"
 hostname
-cat /sys/devices/virtual/dmi/id/board_{vendor,name}
+cat /sys/devices/virtual/dmi/id/board_{vendor,name} || true
 echo
 
 DISKS="nvme0n1 nvme1n1"

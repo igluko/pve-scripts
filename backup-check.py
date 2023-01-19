@@ -103,13 +103,12 @@ def get_pbs_stor(proxmox):
 #Получаем список бекапов
 def get_backup_list(storage, delta_time):
     # Запрашиваем список бекапов
-    for i in range(20):
+    for i in range(1000):
         try:
             backups = proxmox.nodes(socket.gethostname()).storage(storage['storage']).content.get()
             break
         except Exception:
-            time.sleep(30)
-
+            time.sleep(5)
     # Отсеиваем лишнее
     backups_short = []
     for i in range(len(backups)):

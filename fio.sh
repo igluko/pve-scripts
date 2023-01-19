@@ -106,10 +106,10 @@ do
     echo -e "Seq-128k-Q32T1-Read \t KB/sec"
     echo -e "Seq-128k-Q32T1-Write \t KB/sec"
 
-    echo -e "Rnd-4k-Q32T16-Read \t iops"
-    echo -e "Rnd-4k-Q32T16-Write \t iops"
-    # echo -e "Rnd-4k-Q32T1-Read \t iops"
-    # echo -e "Rnd-4k-Q32T1-Write \t iops"
+    # echo -e "Rnd-4k-Q32T16-Read \t iops"
+    # echo -e "Rnd-4k-Q32T16-Write \t iops"
+    echo -e "Rnd-4k-Q32T1-Read \t iops"
+    echo -e "Rnd-4k-Q32T1-Write \t iops"
     echo -e "Rnd-4k-Q1T1-Read \t iops"
     echo -e "Rnd-4k-Q1T1-Write \t iops"
 

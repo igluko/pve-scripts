@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 #Как пользоватся:
-#Нужно казать начиная с какого vmid нужно отключить бекап у дисков -disable_id_from <vmid>
+#Нужно указать начиная с какого vmid нужно отключить бекап у дисков -disable_id_from <vmid>
 
 import sys, time, socket, os
 try:
@@ -87,12 +87,12 @@ def get_pbs_stor(proxmox):
 
 # Получаем список дисков для VM
 def get_vm_disks(proxmox, vms, storages):
-    exclude = 'description, efidisk0, tpmstate0, efidisk1, tpmstate1'
+    exclude = 'description, efidisk, tpmstate, efidisk, tpmstate, unused'
     res={}
     for vm in vms:
         res[vm] = {}
         for k, v in proxmox.nodes(socket.gethostname()).qemu(vm).config.get().items():
-            if (k not in exclude) and (type(v) == str):
+            if (k[:-1] not in exclude) and (type(v) == str):
                 for storage in storages:
                     if ('backup=0' not in v) and (storage in v):
                         res[vm][k] = v

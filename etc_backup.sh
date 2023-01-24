@@ -66,8 +66,10 @@ then
     printf "\n"
     backup
 else
-    # Выводим в stdout только ошибки
+    # Выводим только ошибки
     export PBS_LOG=error
-    backup
+    # Подавление std_out нужно для поддержки старого клиента.
+    # Начиная с версии примерно 2.2.7 все сообщение пишутся в канал std_err
+    backup >/dev/null
 fi
 

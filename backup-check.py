@@ -94,9 +94,16 @@ def get_pbs_stor(proxmox):
             time.sleep(30)
     # Оставляем сторадж с type = pbs
     storage = ''
+    PBSSum = 0
     for stor in storages:
-        if stor['type'] == 'pbs':
+        if (stor['type'] == 'pbs') and ( not ('disable' in stor)):
+            PBSSum += 1
             storage = stor
+    if PBSSum != 1: 
+        msg = 'PBS backup check script: On node '+ socket.gethostname() + ' has ' + str(PBSSum) + ' enabled PBS storage. 1 is expected.'
+        if tg:
+            send_tg(msg)
+        sys.exit(msg)
     return(storage)
 
 

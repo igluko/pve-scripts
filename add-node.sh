@@ -476,7 +476,7 @@ function 2-step {
         COMPLETION=$(${SSH} "curl -s -X GET -H \"X-API-Key: ${API_KEY}\" ${URL}")
         echo "${COMPLETION}"
         PERCENTS=$(echo $COMPLETION | jq -r .completion)
-        if [[ ${PERCENTS} -eq 100 ]]
+        if [[ ${PERCENTS} == 100 ]]
         then
             break
         fi

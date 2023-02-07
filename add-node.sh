@@ -780,6 +780,10 @@ function 2-step {
             break
         fi
     done
+
+    # Шаг 25 - Включение бота для клонов ZFS
+    printf "\n${ORANGE}Шаг 25 - Добавление сборщика мусора для клонов ZFS в крон${NC}\n"
+    ${SSH} "/root/Sync/pve-zfsclone-bot/PVECloneBotGC.py -add_cron"
 }
 
 #-----------------------START-----------------------#

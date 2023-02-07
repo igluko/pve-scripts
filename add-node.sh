@@ -457,7 +457,7 @@ function 2-step {
 
     # Проверяем, что синхронизация завершена
     API_KEY=$(${SSH} syncthing cli config gui apikey get)
-    URL="http://localhost:8384/rest/db/completion"
+    URL="http://localhost:8384/rest/db/completion?folder=default"
     printf "\n${ORANGE}Checking that replication is complete:${NC}\n"
     while true
     do

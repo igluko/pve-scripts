@@ -48,6 +48,60 @@ function Q {
     done
 }
 
+# Read variable from file
+function LOAD {
+    local FILE="${1}"
+    if [[ -f  "${FILE}" ]]
+    then 
+        source "${FILE}"
+    else
+        touch "${FILE}"
+    fi
+}
+
+# Save variable to file
+function SAVE {
+    local VARIABLE="${1}"
+    local VALUE="$(echo ${!1} | xargs)"
+    local FILE="${2}"
+
+    if grep -q ^${VARIABLE}= $FILE 2>/dev/null
+    then
+        eval "sed -i -E 's/${VARIABLE}=.*/${VARIABLE}=\"${VALUE}\"/' $FILE"
+    else
+        echo "${VARIABLE}=\"${VALUE}\"" >> $FILE
+    fi
+}
+
+# Update variable from stdin
+function UPDATE {
+    local VARIABLE="${1}"
+
+    # Load file
+    if [[ $# -eq 2 ]]
+    then
+        local FILE="${2}"
+        load ${FILE}
+    fi
+
+    # Create variable if not exists
+    if [[ ! -v ${VARIABLE} ]];
+    then
+        eval ${VARIABLE}=""
+    fi
+    local VALUE="$(echo ${!1} | xargs)"
+
+    # Update value
+    printf "\n${RED}Please input ${VARIABLE}${NC}\n"
+    read -e -p "> " -i "${VALUE}" ${VARIABLE}
+
+    # Save value to file
+    if [[ $# -eq 2 ]]
+    then
+        SAVE ${VARIABLE} ${FILE}
+    fi
+}
+
 function WHIPTAIL {
     IFS=$'\n\t'
     local INPUT=("$@")

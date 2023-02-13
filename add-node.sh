@@ -5,28 +5,14 @@
 # Tested on Hetzner AX-101 servers
 ###
 
-# Helpful to read output when debugging
-# set -x
-
-#https://stackoverflow.com/questions/5947742/how-to-change-the-output-color-of-echo-in-linux
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-ORANGE='\033[0;33m'
-NC='\033[0m' # No Color
-
-# Strict mode
-# set -eEuo pipefail
-set -eEu
-trap 'printf "${RED}Failed on line: $LINENO at command:${NC}\n$BASH_COMMAND\nexit $?\n"' ERR
-# IFS=$'\n\t'
+# get real path to script
+SCRIPT=$(realpath $0)
+SCRIPT_PATH=$(dirname $SCRIPT)
+# load functions
+source $SCRIPT_PATH/FUNCTIONS
 
 # read envivoments
 source  /etc/environment
-# get real path to script
-SCRIPT=`realpath $0`
-SCRIPTPATH=`dirname $SCRIPT`
-# add binary folders to local path
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 function run {
     printf "\n${GREEN}$*${NC}\n"
@@ -83,7 +69,7 @@ function update {
     # echo "$VARIABLE is $VALUE"
 }
 
-function apt-install {
+function INSTALL {
     for NAME in $*
     do
         local DPKG="dpkg -l | awk '\$2==\"${NAME}\" && \$1==\"ii\" {print \$1,\$2,\$3}'"
@@ -168,7 +154,7 @@ function 0-step {
 function 1-step {
     # Install soft
     printf "\n${ORANGE}apt install${NC}\n"
-    apt-install nvme-cli
+    INSTALL nvme-cli
 
     # Show node info
     printf "\n${GREEN}hostnamectl${NC}\n"
@@ -273,7 +259,7 @@ function 2-step {
 
     # Install soft
     printf "\n${ORANGE}apt install${NC}\n"
-    apt-install git jq nvme-cli patch sanoid
+    INSTALL git jq nvme-cli patch sanoid
 
     # Шаг 2 - firewall
     printf "\n${ORANGE}Шаг 2 - firewall${NC}\n"
@@ -744,7 +730,7 @@ function 2-step {
     if Q "Настроить переодические снимки через Sanoid?"
     then
         # Устанавливаем
-        apt-install sanoid
+        INSTALL sanoid
         # Меняем часовой пояс
         ${SSH} "sed -i -E '/Environment=TZ=/ s/UTC/Europe\/Moscow/' /lib/systemd/system/sanoid.service"
         # Конфигурирование sanoid:

@@ -668,9 +668,12 @@ function 2-step {
 
     # Шаг 17 - ebtables
     printf "\n${ORANGE}Шаг 17 - ebtables${NC}\n"
-    ${SSH} "ip link"
-    printf "\n${ORANGE}---${NC}\n"
-    ${SSH} -t "/root/Sync/pve-scripts/ebtables.sh"
+    if Q "Настроить ebtables?"
+    then
+        ${SSH} "ip link"
+        printf "\n${ORANGE}---${NC}\n"
+        ${SSH} -t "/root/Sync/pve-scripts/ebtables.sh"
+    fi
 
     # Шаг 18 - bridge и vlan
     printf "\n${ORANGE}Шаг 18 - bridge и vlan${NC}\n"
@@ -682,7 +685,11 @@ function 2-step {
 
     # Шаг 19 - Zabbix
     printf "\n${ORANGE}Шаг 19 - Zabbix${NC}\n"
-    echo "Пропустили"
+    if Q "Настроить Zabbix?"
+    then
+        apt-install zabbix-agent
+        ${SSH} -t "sh /root/Sync/zabbix-agent/ConfigureZabbixAgent.sh"
+    fi
 
     # Шаг 20 - Бекап /etc
     printf "\n${ORANGE}Шаг 20 - Бекап /etc${NC}\n"

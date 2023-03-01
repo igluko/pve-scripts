@@ -16,8 +16,7 @@ then
     if dpkg -l | awk '$1=="ii" {print $0}' | grep ${PACKAGE} | grep ${VERSION}
     then
         # Нужная версия уже стоит
-        return 0
-        
+        exit 0
     else
         # Удаляем старую версию
         apt remove ${PACKAGE} -y

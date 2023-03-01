@@ -37,7 +37,15 @@ ln -s packages/debian .
 dpkg-buildpackage -uc -us
 apt install ../sanoid_*_all.deb
 
+# После переустановки (обновления) службы будут маскированы
 systemctl unmask sanoid.timer
 systemctl unmask sanoid-prune.service
+
+# Запуск служб
 systemctl enable sanoid.timer
 systemctl start sanoid.timer
+
+# Нужно поменять часовой пояс сервиса
+sed -i -E '/Environment=TZ=/ s/UTC/Europe\/Moscow/' /lib/systemd/system/sanoid.service
+systemctl daemon-reload
+systemctl restart sanoid

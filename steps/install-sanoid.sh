@@ -13,7 +13,7 @@ VERSION="2.1.0"
 if dpkg -l | awk '$1=="ii" {print $0}' | grep ${PACKAGE}
 then
     # Проверяем версию
-    if dpkg -l | awk '$1=="ii" {print $0}' | grep ${PACKAGE} | grep ${VERSION}
+    if dpkg -l | awk '$1=="ii" {print $0}' | grep ${PACKAGE} | grep -q ${VERSION}
     then
         # Нужная версия уже стоит
         exit 0

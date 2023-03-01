@@ -24,7 +24,7 @@ then
 fi
 
 # Устанавливаем пакет
-apt update
+apt update || true
 apt install -y debhelper libcapture-tiny-perl libconfig-inifiles-perl pv lzop mbuffer build-essential git
 
 cd /tmp

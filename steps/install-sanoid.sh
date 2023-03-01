@@ -27,6 +27,8 @@ fi
 apt install -y debhelper libcapture-tiny-perl libconfig-inifiles-perl pv lzop mbuffer build-essential
 
 cd /tmp
+[[ -e /tmp/sanoid ]] && rm -rf /tmp/sanoid
+rm -rf /tmp/sanoid
 git clone https://github.com/jimsalterjrs/sanoid.git
 cd sanoid
 git checkout $(git tag | grep "^v" | tail -n 1)

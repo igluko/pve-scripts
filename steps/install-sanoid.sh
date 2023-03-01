@@ -24,7 +24,8 @@ then
 fi
 
 # Устанавливаем пакет
-apt install -y debhelper libcapture-tiny-perl libconfig-inifiles-perl pv lzop mbuffer build-essential
+apt update
+apt install -y debhelper libcapture-tiny-perl libconfig-inifiles-perl pv lzop mbuffer build-essential git
 
 cd /tmp
 [[ -e /tmp/sanoid ]] && rm -rf /tmp/sanoid

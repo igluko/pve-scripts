@@ -803,6 +803,7 @@ then
     # 7_LICENSE
     # 9_ENCRYPTION
     # 8_ZFS
+    :
 else
     ACTIVATE_RESCUE
     PVE_INSTALL

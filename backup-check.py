@@ -154,7 +154,14 @@ def check_runing_jobs():
     cat = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
     grep = subprocess.Popen(('grep', 'vzdump'), stdout=subprocess.PIPE, stdin=cat.stdout)
     output = subprocess.check_output(cmd2, stdin=grep.stdout)
-    return(output.decode('utf-8'))
+    return(output.decode('utf-8')[:-2])
+
+def stop_runing_jobs(UPID):
+    cmd = 'pvesh delete /nodes/' + socket.gethostname() + '/tasks/' + UPID
+    status = subprocess.call(cmd.split())
+    if status != 0:
+                Msg = 'pvesh delete /nodes/' + socket.gethostname() + '/tasks ' + UPID + '\n exit status: ' + str(Status)
+                sys.exit(Msg)
 
 
 # Вывод результатов
@@ -166,7 +173,7 @@ def print_status(vms_status, silent, bad_msg = ""):
             bad_msg = '<b>'+mv_status['name']+':'+'</b>'+'\n'
         else:
             if not silent:
-                 print(p_red('\nRunning backup job:\n'+bad_msg))
+                 print(p_red('\nStopped running backup job:\n'+bad_msg))
             bad_msg = '<b>'+mv_status['name']+':'+'</b>'+'\nRunning backup job:\n'+bad_msg+'\n'
         for vmid in mv_status['good_vm']:
             if not silent:
@@ -202,6 +209,9 @@ if storage == '' :
 backups_short = get_backup_list(storage, delta_time)
 vms = get_vm_ids(proxmox, skip_id_from)
 vms_status = check_vm_backups(vms, backups_short)
-msg = print_status(vms_status, silent, check_runing_jobs())
+job_upid = check_runing_jobs()
+if job_upid != '':
+    stop_runing_jobs(job_upid)
+msg = print_status(vms_status, silent, job_upid)
 if tg:
     send_tg(msg)

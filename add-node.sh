@@ -53,7 +53,7 @@ function SSH {
     # ARGS=$(printf " %q" "$@")
 
     # Load local functions into a remote session before doing work
-    local COMMAND="$(typeset -f INSTALL INSERT $PASSTHROUGH_FUNCTION); $@"
+    local COMMAND="$(typeset -f INSTALL INSERT); $@"
 
     ssh "${SSH_OPT[@]}" ${SSH_USER}@${SSH_IP} "${COMMAND}"
 }

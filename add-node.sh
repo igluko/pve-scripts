@@ -592,7 +592,7 @@ function 22_SANOID {
     # ////////////////////
 }
 
-function PVE_INSTALL {
+function PVE_SETUP {
 
      
     # Шаг 10 - доверие между узлами
@@ -803,10 +803,6 @@ then
     # 7_LICENSE
     # 9_ENCRYPTION
     # 8_ZFS
-    if type 22_SANOID | grep -q "is a function"
-    then
-        echo is a function
-    fi
 else
     ACTIVATE_RESCUE
     PVE_INSTALL

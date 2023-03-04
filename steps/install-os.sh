@@ -93,7 +93,7 @@ then
     echo "Please enter GATEWAY:"
     read -e -p "> " -i "$GATEWAI" GATEWAI
 
-    eval "sed -i -E \"s/iface ens3/iface ${IF_NAME}/\" ${FILE}"
+    eval "sed -i -E \"s/ens3/${IF_NAME}/\" ${FILE}"
     eval "sed -i -E \"s/bridge-ports .*/bridge-ports ${IF_NAME}/\"  ${FILE}" 
     eval "sed -i -E \"s/address .*/address ${IP}\/32/\" ${FILE}"
     eval "sed -i -E \"s/gateway .*/gateway ${GATEWAI}/\"  ${FILE}"

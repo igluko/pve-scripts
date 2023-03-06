@@ -43,6 +43,9 @@ fi
 if Q "Объединить локальную и удаленную ноды Syncthing?"
 then
     H1 "Внимание, сейчас будет предложено ввести IP адрес соседней ноды!"
+    SSH "true"
+    H1 "Имя удаленной машины: $(SSH "hostname -f")"
+    Q "Продолжаем?" || exit
     # add local device to remote Syncthing
     ID1=$(syncthing --device-id)
     SSH "syncthing cli config devices add --device-id ${ID1}"

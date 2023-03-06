@@ -198,3 +198,48 @@ function INSTALL {
 }
 
 
+function SSH {
+    # Set global variable for the first time
+    if [[ ! -v SSH_USER ]]
+    then
+        SSH_USER="root"
+    fi
+    # Set global variable and save it to the file for the first time
+    if [[ ! -v SSH_IP ]]
+    then
+        # UPDATE "SSH_IP" "${SCRIPT_PATH}/.env"
+        UPDATE "SSH_IP"
+        # Try to connect, if it fails, then copy the public key
+        if ! SSH "true"
+        then
+            # FILE='/root/.ssh/id_rsa.pub'
+            # if [[ -f ${FILE} ]]
+            # then
+                ssh-copy-id -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_IP}
+                # fix for ssh with key forwarding
+                # ssh-copy-id -i ${FILE} -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_IP}
+            # else
+            #     echo "${FILE} not exist"
+            #     exit 1
+            # fi
+        fi
+    fi
+    # -A option enables forwarding of the authentication agent connection.
+    local SSH_OPT=(-C -o BatchMode=yes -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q)
+    
+    # Add another SSH options if variable SSH_OPT_ADD is set
+    if [[ -v SSH_OPT_ADD ]]
+    then
+        local SSH_OPT+=(${SSH_OPT_ADD[@]})
+    fi
+    
+    # Bash quoted array expansion for input args
+    # https://stackoverflow.com/questions/12985178/bash-quoted-array-expansion
+    # ARGS=$(printf " %q" "$@")
+
+    # Load local functions into a remote session before doing work
+    local COMMAND="$(typeset -f INSTALL INSERT); $@"
+
+    ssh "${SSH_OPT[@]}" ${SSH_USER}@${SSH_IP} "${COMMAND}"
+}
+

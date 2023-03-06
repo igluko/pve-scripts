@@ -197,24 +197,4 @@ function INSTALL {
     done
 }
 
-function INFO-TRASH {
-    # IP
-    ip addr
-    # Mother
-    cat /sys/devices/virtual/dmi/id/{board_vendor,board_name,board_version,bios_version,bios_date} 2>/dev/null ; true
-    # RAM
-    dmidecode -t memory | grep Speed | head -2 | xargs -r
-    # NVME
-    cat /sys/class/block/nvme*/device/{model,serial,firmware_rev} 2>/dev/null ; true
-    fdisk -l /dev/nvme*n1 2>/dev/null | grep size
-    nvme list
-    ls /dev/nvme*n1 | xargs -n1 nvme id-ns -H | (grep 'LBA Format')
-
-    printf "\nphysical_block_size\nhw_sector_size\nminimum_io_size\n-\n"
-    cat /sys/block/nvme*n1/queue/physical_block_size; echo '-'
-    cat /sys/block/nvme*n1/queue/hw_sector_size; echo '-'
-    cat /sys/block/nvme*n1/queue/minimum_io_size; echo '-'
-}
-
-
 

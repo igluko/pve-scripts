@@ -12,6 +12,9 @@ else
     source ${SCRIPT_PATH}/FUNCTIONS
 fi
 
+# Install software
+INSTALL "jq"
+
 # Установка
 if ! eval "which syncthing >/dev/null"
 then
@@ -40,7 +43,7 @@ then
 fi
 
 # Настройка
-if Q "Объединить локальную и удаленную ноды Syncthing?"
+if Q "Подключить эту ноду Syncthing к другой ноде?"
 then
     H1 "Внимание, сейчас будет предложено ввести IP адрес соседней ноды!"
     SSH "true"

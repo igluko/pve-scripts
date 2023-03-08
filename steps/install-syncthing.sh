@@ -32,7 +32,7 @@ eval "systemctl status --no-pager syncthing@root"
 # Добавляем в syncthing папку iso, если она присутствует на хосте
 FOLDER_NAME="iso"
 FOLDER_PATH="/var/lib/vz/template/iso"
-if [[ -f "${FOLDER_PATH}" ]]
+if [[ -d "${FOLDER_PATH}" ]]
 then
     if ! eval "syncthing cli config folders list | grep -q ${FOLDER_NAME}"
     then

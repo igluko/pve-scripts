@@ -80,8 +80,8 @@ fi
 
 # Проверяем, что синхронизация завершена
 API_KEY=$(eval "syncthing cli config gui apikey get")
-URL="http://localhost:8384/rest/db/completion"
-# URL="http://localhost:8384/rest/db/completion?folder=default"
+# URL="http://localhost:8384/rest/db/completion"
+URL="http://localhost:8384/rest/db/completion?folder=default"
 H1 "Checking that replication is complete:"
 while true
 do

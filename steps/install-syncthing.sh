@@ -42,6 +42,12 @@ then
     eval "pvesm set local --shared 1"
 fi
 
+# Отобразить локальный список узлов и папок
+H2 "local devices list:"
+eval "syncthing cli config devices list"
+H2 "local folder list:"
+eval "syncthing cli config folders list"
+
 # Настройка
 if Q "Подключить эту ноду Syncthing к другой ноде?"
 then
@@ -67,13 +73,9 @@ then
         eval "syncthing cli config folders ${FOLDER} devices add --device-id ${ID2}"
     done
 
-    # Проверка
-    H2 "local devices list:"
-    eval "syncthing cli config devices list"
+    # Отобразить удаленный список узлов и папок
     H2 "remote devices list:"
     SSH "syncthing cli config devices list"
-    H2 "local folder list:"
-    eval "syncthing cli config folders list"
     H2 "remote folder list:"
     SSH "syncthing cli config folders list"
 fi

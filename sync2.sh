@@ -4,16 +4,17 @@ SCRIPTPATH=`dirname $SCRIPT`
 
 function help(){
     echo "Usages:" 
-    echo "  sync2.sh 1.2.3.4 LABEL"
+    echo "  sync2.sh 1.2.3.4 LABEL KEYLOCATION"
     exit 1
 }
 
-if [ $# -ne 2 ]; then
+if [ $# -ne 3 ]; then
     help
 fi
 
 DST_NODE=$1
 LABEL=$2
+KEYLOCATION=$3
 SSH_OPT="BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no"
 SSH="ssh -o $SSH_OPT root@$DST_NODE"
 SCP="scp -o $SSH_OPT"
@@ -95,7 +96,7 @@ done
 for ZFS in $(zfs list -H -o name,keystatus,keylocation | awk '$2=="unavailable" && $3=="prompt" {print $1}')
 do
     echo "load-key for $ZFS"
-    zfs set keylocation=file:///tmp/passphrase $ZFS
+    zfs set keylocation=$KEYLOCATION $ZFS
     zfs load-key $ZFS
 done
 

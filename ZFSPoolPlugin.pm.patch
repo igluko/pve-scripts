@@ -1,14 +1,21 @@
-737c737
-<     my $cmd = ['zfs', 'send', '-Rpv'];
+752c752
+<     my $cmd = ['zfs', 'send', '-Rpvw'];
 ---
->     my $cmd = ['zfs', 'send', '-Rpvw'];
-792c792,798
-< 
+>     my $cmd = ['zfs', 'send', '-Rpv'];
+809,822c809
+<       my $msg = '';
+<     my $output = sub { $msg .= "$_[0]" };
+<     run_command(['zfs', 'get', '-Ho', 'value', 'keystatus', $zfspath], outfunc => $output);
+<
+<     if ($msg eq "unavailable") {
+<         my $parent_keylocation = '';
+<         my $parent_output = sub { $parent_keylocation .= "$_[0]" };
+<         my $parent_zfspath = $zfspath;
+<         my $position = rindex($parent_zfspath, "/");
+<         $parent_zfspath = substr($parent_zfspath, 0 ,$position);
+<         run_command(['zfs', 'get', '-Ho', 'value', 'keylocation', $parent_zfspath], outfunc => $parent_output);
+<         eval { run_command(['zfs', 'set', "keylocation=$parent_keylocation", $zfspath]) };
+<         eval { run_command(['zfs', 'load-key', $zfspath]) };
+<     }
 ---
-> 	my $msg = '';
->     my $output = sub { $msg .= "$_[0]" };
->     run_command(['zfs', 'get', '-Ho', 'value', 'keystatus', $zfspath], outfunc => $output);
-> 	if ($msg eq "unavailable") {
-> 		eval { run_command(['zfs', 'set', 'keylocation=file:///tmp/passphrase', $zfspath]) };
-> 		eval { run_command(['zfs', 'load-key', $zfspath]) };
-> 	}
+>

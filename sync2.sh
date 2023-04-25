@@ -95,10 +95,17 @@ done
 # load keys
 for ZFS in $(zfs list -H -o name,keystatus,keylocation | awk '$2=="unavailable" && $3=="prompt" {print $1}')
 do
-    echo "load-key for $ZFS"
-    zfs set keylocation=$KEYLOCATION $ZFS
-    zfs load-key $ZFS
+    # Get parent dataset
+    PARENT_DATASET=${ZFS%/*}
+    # If parent dataset exists and has a keylocation set
+    if [ -n "$PARENT_DATASET" ] && [ "$(zfs get -H -o value keylocation "$PARENT_DATASET")" != "none" ]; then
+        PARENT_KEYLOCATION=$(zfs get -H -o value keylocation "$PARENT_DATASET")
+        echo "load-key for $ZFS"
+        zfs set keylocation="$PARENT_KEYLOCATION" $ZFS
+        zfs load-key $ZFS
+    fi
 done
+
 
 exit 0
 #-----------------------------------------------#

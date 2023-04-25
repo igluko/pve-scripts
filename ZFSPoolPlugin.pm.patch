@@ -1,21 +1,34 @@
-752c752
-<     my $cmd = ['zfs', 'send', '-Rpvw'];
----
->     my $cmd = ['zfs', 'send', '-Rpv'];
-809,822c809
-<       my $msg = '';
-<     my $output = sub { $msg .= "$_[0]" };
-<     run_command(['zfs', 'get', '-Ho', 'value', 'keystatus', $zfspath], outfunc => $output);
-<
-<     if ($msg eq "unavailable") {
-<         my $parent_keylocation = '';
-<         my $parent_output = sub { $parent_keylocation .= "$_[0]" };
-<         my $parent_zfspath = $zfspath;
-<         my $position = rindex($parent_zfspath, "/");
-<         $parent_zfspath = substr($parent_zfspath, 0 ,$position);
-<         run_command(['zfs', 'get', '-Ho', 'value', 'keylocation', $parent_zfspath], outfunc => $parent_output);
-<         eval { run_command(['zfs', 'set', "keylocation=$parent_keylocation", $zfspath]) };
-<         eval { run_command(['zfs', 'load-key', $zfspath]) };
-<     }
----
->
+--- ZFSPoolPlugin.pm.orig	2023-04-25 11:21:51.722359673 +0300
++++ ZFSPoolPlugin.pm	2023-04-25 12:54:46.510392008 +0300
+@@ -749,7 +749,7 @@
+     # For zfs we always create a replication stream (-R) which means the remote
+     # side will always delete non-existing source snapshots. This should work
+     # for all our use cases.
+-    my $cmd = ['zfs', 'send', '-Rpv'];
++    my $cmd = ['zfs', 'send', '-Rpvw'];
+     if (defined($base_snapshot)) {
+ 	my $arg = $with_snapshots ? '-I' : '-i';
+ 	push @$cmd, $arg, $base_snapshot;
+@@ -805,8 +805,21 @@
+ 	    eval { run_command(['zfs', 'destroy', '-r', '--', $zfspath]) };
+ 	}
+ 	die $err;
++  }
++    my $msg = '';
++    my $output = sub { $msg .= "$_[0]" };
++    run_command(['zfs', 'get', '-Ho', 'value', 'keystatus', $zfspath], outfunc => $output);
++
++    if ($msg eq "unavailable") {
++        my $parent_keylocation = '';
++        my $parent_output = sub { $parent_keylocation .= "$_[0]" };
++        my $parent_zfspath = $zfspath;
++        my $position = rindex($parent_zfspath, "/");
++        $parent_zfspath = substr($parent_zfspath, 0 ,$position);
++        run_command(['zfs', 'get', '-Ho', 'value', 'keylocation', $parent_zfspath], outfunc => $parent_output);
++        eval { run_command(['zfs', 'set', "keylocation=$parent_keylocation", $zfspath]) };
++        eval { run_command(['zfs', 'load-key', $zfspath]) };
+     }
+-
+     return "$storeid:$dataset";
+ }
+ 

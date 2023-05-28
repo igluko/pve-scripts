@@ -40,7 +40,7 @@ then
     then
         echo "task already has been added to crontab"
     else
-        (crontab -l 2>/dev/null; echo "$TASK") | crontab -
+        (crontab -l 2>/dev/null || true; echo "$TASK") | crontab -
     fi
 fi
 

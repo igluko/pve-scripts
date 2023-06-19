@@ -36,6 +36,7 @@ export PBS_REPOSITORY=$PBS_REPOSITORY
 function backup {
     mkdir -p /home/backup
     cp -r /etc /home/backup/etc
+    cp -r /root/Sync/floppy /home/backup/floppy
     proxmox-backup-client backup home.pxar:/home/backup/
 }
 

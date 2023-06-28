@@ -4,7 +4,7 @@ SCRIPTPATH=`dirname $SCRIPT`
 
 function help(){
     echo "Usages:" 
-    echo "  sync2.sh 1.2.3.4 LABEL KEYLOCATION"
+    echo "  sync2.sh 1.2.3.4 LABEL"
     exit 1
 }
 
@@ -14,7 +14,6 @@ fi
 
 DST_NODE=$1
 LABEL=$2
-KEYLOCATION=$3
 SSH_OPT="BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no"
 SSH="ssh -o $SSH_OPT root@$DST_NODE"
 SCP="scp -o $SSH_OPT"

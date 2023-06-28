@@ -76,6 +76,13 @@ do
         do
             VMID=$(echo $ZFS | awk -F - '{print $2}')
             echo "$VMID - $ZFS"
+
+            # If the dataset name contains -state-suspend-, then skip it
+            if [[ $ZFS == *"state-suspend-"* ]]; then
+                echo "skip"
+                continue
+            fi
+
             if (echo "$VMID" | grep -q [1-7][0-9][0-9])
             then
                 # zfs

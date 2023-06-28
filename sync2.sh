@@ -8,7 +8,7 @@ function help(){
     exit 1
 }
 
-if [ $# -ne 3 ]; then
+if [ $# -ne 2 ]; then
     help
 fi
 

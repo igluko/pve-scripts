@@ -44,9 +44,9 @@ for pool in $zfs_pools; do
 
     ## stopped -> running
     # находим датасеты, которые нуждаются в свойстве label:running и проставляем его
-    # не используем zfs program: запуск\остановка VM - редкоя операция
-    for dataset in $(echo "$running_datasets" | awk '($3 != "running"){print $0}'); do
-         zfs set label:running=running $dataset
+    # не используем zfs program: запуск\остановка VM - редкая операция
+    for dataset in $(echo "$running_datasets" | awk '($3 != "running"){print $1}'); do
+        zfs set label:running=running $dataset
     done
 
     #  фильтруем: оставляем те, где label:nosnap == nosnap,

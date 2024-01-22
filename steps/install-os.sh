@@ -107,36 +107,79 @@ then
     done
     printf "${NC}"
 
+set -x
 
-    # Путь к файлу конфигурации
-    CONFIG_FILE="/etc/network/interfaces"
+# Путь к файлу конфигурации
+CONFIG_FILE="/mnt/etc/network/interfaces"
 
-    # Получаем имя активного интерфейса
-    ACTIVE_INTERFACE=$(ip -br link | awk '$3 == "UP" {print $1}' | head -n 1)
+# Извлекаем текущий интерфейс, используемый в конфигурации vmbr0
+CURRENT_INTERFACE=$(awk '/bridge-ports/ {print $2}' $CONFIG_FILE)
 
-    # Извлекаем текущий интерфейс, используемый в конфигурации vmbr0
-    CURRENT_INTERFACE=$(awk '/bridge-ports/ {print $2}' $CONFIG_FILE)
+# Убедитесь, что CURRENT_INTERFACE был определен
+if [ -z "$CURRENT_INTERFACE" ] || [ "$CURRENT_INTERFACE" = "none" ]; then
+    echo "Текущий интерфейс не найден в файле конфигурации."
+    exit 1
+fi
 
-    # Извлекаем текущие настройки IP и шлюза
-    CURRENT_IP=$(awk '/address/ {print $2}' $CONFIG_FILE | head -1)
-    CURRENT_GATEWAY=$(awk '/gateway/ {print $2}' $CONFIG_FILE | head -1)
+# Получаем список всех физических сетевых интерфейсов, исключая loopback, docker и veth
+ALL_INTERFACES=$(ls /sys/class/net | grep -v 'lo\|docker\|veth')
 
-    # Запрашиваем у пользователя новые значения
-    read -p "Введите новый IP-адрес (текущий: $CURRENT_IP): " NEW_IP
-    NEW_IP=${NEW_IP:-$CURRENT_IP}
+# Определяем активные проводные интерфейсы
+ACTIVE_INTERFACES=()
+for IFACE in $ALL_INTERFACES; do
+    # Проверяем, является ли интерфейс активным и не является USB
+    if [[ "$(cat /sys/class/net/$IFACE/operstate)" == "up" ]] && [[ -z $(udevadm info --path=/sys/class/net/$IFACE | grep ID_BUS | grep usb) ]]; then
+        ID_NET_NAME_PATH=$(udevadm info --path=/sys/class/net/$IFACE | grep ID_NET_NAME_PATH | awk -F '=' '{print $2}')
+        if [ ! -z "$ID_NET_NAME_PATH" ]; then
+            ACTIVE_INTERFACES+=("$ID_NET_NAME_PATH")
+        fi
+    fi
+done
 
-    read -p "Введите новый шлюз (текущий: $CURRENT_GATEWAY): " NEW_GATEWAY
-    NEW_GATEWAY=${NEW_GATEWAY:-$CURRENT_GATEWAY}
+# Выбор активного интерфейса
+if [ ${#ACTIVE_INTERFACES[@]} -eq 1 ]; then
+    # Если найден только один активный интерфейс, используем его
+    ACTIVE_INTERFACE=${ACTIVE_INTERFACES[0]}
+elif [ ${#ACTIVE_INTERFACES[@]} -gt 1 ]; then
+    # Если есть несколько активных интерфейсов, предлагаем пользователю выбрать
+    echo "Найдено несколько активных проводных интерфейсов. Пожалуйста, выберите один:"
+    for i in "${!ACTIVE_INTERFACES[@]}"; do
+        echo "$((i+1))) ${ACTIVE_INTERFACES[$i]}"
+    done
+    read -p "Введите номер интерфейса: " INTERFACE_CHOICE
+    ACTIVE_INTERFACE=${ACTIVE_INTERFACES[$((INTERFACE_CHOICE-1))]}
+else
+    echo "Активные проводные интерфейсы не найдены."
+    exit 1
+fi
 
-    # Заменяем имя интерфейса и настройки в файле конфигурации
-    sed -i "s/iface $CURRENT_INTERFACE inet manual/iface $ACTIVE_INTERFACE inet manual/" $CONFIG_FILE
-    sed -i "s/address .*/address $NEW_IP/" $CONFIG_FILE
-    sed -i "s/gateway .*/gateway $NEW_GATEWAY/" $CONFIG_FILE
-    sed -i "s/bridge-ports .*/bridge-ports $ACTIVE_INTERFACE/" $CONFIG_FILE
+echo "Выбранный интерфейс: $ACTIVE_INTERFACE"
 
-    # Выводим обновленную конфигурацию
-    echo "Обновленная конфигурация:"
-    cat $CONFIG_FILE
+# Извлекаем текущие настройки IP и шлюза
+CURRENT_IP=$(grep 'address' $CONFIG_FILE | grep -v 'lo' | awk '{print $2}')
+CURRENT_GATEWAY=$(grep 'gateway' $CONFIG_FILE | awk '{print $2}')
+
+# Запрашиваем у пользователя новые значения, предлагая текущие в качестве значений по умолчанию
+read -e -p "Введите новый IP-адрес: " -i "$CURRENT_IP" NEW_IP
+NEW_IP=${NEW_IP:-$CURRENT_IP}
+
+read -e -p "Введите новый шлюз: " -i "$CURRENT_GATEWAY" NEW_GATEWAY
+NEW_GATEWAY=${NEW_GATEWAY:-$CURRENT_GATEWAY}
+
+# Выводим обновленные значения
+echo "Новый IP-адрес: $NEW_IP"
+echo "Новый шлюз: $NEW_GATEWAY"
+
+# Теперь используем переменную ACTIVE_INTERFACE для обновления файла конфигурации
+sed -i "s|iface $CURRENT_INTERFACE inet manual|iface $ACTIVE_INTERFACE inet manual|" $CONFIG_FILE
+sed -i "/iface vmbr0 inet static/,/iface|auto|source/ s|address .*|address $NEW_IP|" $CONFIG_FILE
+sed -i "/iface vmbr0 inet static/,/iface|auto|source/ s|gateway .*|gateway $NEW_GATEWAY|" $CONFIG_FILE
+sed -i "s|bridge-ports $CURRENT_INTERFACE|bridge-ports $ACTIVE_INTERFACE|" $CONFIG_FILE
+
+# Выводим обновленную конфигурацию
+echo "Обновленная конфигурация:"
+cat $CONFIG_FILE
+
 
     eval "zfs set mountpoint=/ ${ZFS_ROOT}"
     eval "zpool export rpool"

@@ -28,9 +28,11 @@ done
 
 # Check for EFI or MBR boot mode
 if [ -d /sys/firmware/efi ]; then
+    H1 "Текущий режим загрузки: EFI"
     BOOT_MODE="efi"
     QEMU_MACHINE_TYPE="q35"
 else
+    H1 "Текущий режим загрузки: MBR"
     BOOT_MODE="mbr"
     QEMU_MACHINE_TYPE="pc"
 fi

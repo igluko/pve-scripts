@@ -109,22 +109,29 @@ then
 
 
     FILE="/mnt/etc/network/interfaces"
-    IP=$(eval "cat ${FILE} | grep -oE address.* | cut -s -d \" \" -f 2- | cut -s -d \"/\" -f 1")
-    GATEWAI=$(eval "cat ${FILE} | grep -oE gateway.* | cut -s -d \" \" -f 2-")
 
-    # IF_NAME=$(echo "${ID_NET_NAME_PATH}" | head -n 1)
+    # Предполагаем, что вы уже определили активный интерфейс и его название хранится в переменной ACTIVE_INTERFACE
+    # Например, ACTIVE_INTERFACE="enp0s2"
+
+    # Извлекаем текущие настройки IP и шлюза для активного интерфейса
+    IP=$(awk "/iface $ACTIVE_INTERFACE/,/iface|auto/" $FILE | grep -oE 'address .*' | cut -d ' ' -f 2 | cut -d '/' -f 1)
+    GATEWAI=$(awk "/iface $ACTIVE_INTERFACE/,/iface|auto/" $FILE | grep -oE 'gateway .*' | cut -d ' ' -f 2)
+
     echo "Please enter INTERFACE NAME:"
-    read -e -p "> " -i "" IF_NAME
+    read -e -p "> " -i "$ACTIVE_INTERFACE" IF_NAME
     echo "Please enter IP:"
     read -e -p "> " -i "$IP" IP
     echo "Please enter GATEWAY:"
     read -e -p "> " -i "$GATEWAI" GATEWAI
 
-    eval "sed -i -E \"s/ens3/${IF_NAME}/\" ${FILE}"
-    eval "sed -i -E \"s/bridge-ports .*/bridge-ports ${IF_NAME}/\"  ${FILE}" 
-    eval "sed -i -E \"s/address .*/address ${IP}\/32/\" ${FILE}"
-    eval "sed -i -E \"s/gateway .*/gateway ${GATEWAI}/\"  ${FILE}"
-   
+    # Перезаписываем конфигурацию для активного интерфейса
+    sed -i "/iface $ACTIVE_INTERFACE/,/iface|auto/ s/address .*/address $IP\/32/" $FILE
+    sed -i "/iface $ACTIVE_INTERFACE/,/iface|auto/ s/gateway .*/gateway $GATEWAI/" $FILE
+    sed -i "/iface $ACTIVE_INTERFACE/,/iface|auto/ s/iface $ACTIVE_INTERFACE inet .*/iface $IF_NAME inet manual/" $FILE
+
+    # Если нужно изменить bridge-ports для vmbr0
+    sed -i "/iface vmbr0/,/iface|auto/ s/bridge-ports .*/bridge-ports $IF_NAME/" $FILE
+
     H1 "cat ${FILE}"
     cat "${FILE}"
 

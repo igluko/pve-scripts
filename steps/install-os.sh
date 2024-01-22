@@ -110,8 +110,30 @@ then
 
     FILE="/mnt/etc/network/interfaces"
 
-    # Предполагаем, что вы уже определили активный интерфейс и его название хранится в переменной ACTIVE_INTERFACE
-    # Например, ACTIVE_INTERFACE="enp0s2"
+    # Получаем список всех сетевых интерфейсов
+    INTERFACES=($(ip link show | awk -F: '$0 !~ "lo|virbr|docker|veth|^[^0-9]"{print $2;getline}'))
+
+    # Проверяем количество интерфейсов
+    NUM_INTERFACES=${#INTERFACES[@]}
+
+    if [ "$NUM_INTERFACES" -eq 1 ]; then
+        # Если найден только один интерфейс, используем его
+        ACTIVE_INTERFACE=${INTERFACES[0]}
+    elif [ "$NUM_INTERFACES" -gt 1 ]; then
+        # Если есть несколько интерфейсов, предлагаем пользователю выбрать
+        echo "Найдено несколько сетевых интерфейсов. Пожалуйста, выберите один:"
+        for i in "${!INTERFACES[@]}"; do
+            echo "$((i+1))) ${INTERFACES[$i]}"
+        done
+        read -p "Введите номер интерфейса: " INTERFACE_CHOICE
+        ACTIVE_INTERFACE=${INTERFACES[$((INTERFACE_CHOICE-1))]}
+    else
+        echo "Сетевые интерфейсы не найдены."
+        exit 1
+    fi
+
+    echo "Активный сетевой интерфейс: $ACTIVE_INTERFACE"
+
 
     # Извлекаем текущие настройки IP и шлюза для активного интерфейса
     IP=$(awk "/iface $ACTIVE_INTERFACE/,/iface|auto/" $FILE | grep -oE 'address .*' | cut -d ' ' -f 2 | cut -d '/' -f 1)

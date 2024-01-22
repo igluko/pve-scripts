@@ -110,8 +110,8 @@ then
 
     FILE="/mnt/etc/network/interfaces"
 
-    # Получаем список всех сетевых интерфейсов
-    INTERFACES=($(ip link show | awk -F: '$0 !~ "lo|virbr|docker|veth|^[^0-9]"{print $2;getline}'))
+    # Получаем список всех сетевых интерфейсов, исключая loopback и USB
+    INTERFACES=($(ip link show | grep -v "lo\|usb\|virbr\|docker\|veth" | awk -F: '$0 !~ "^[^0-9]"{print $2;getline}' | tr -d ' '))
 
     # Проверяем количество интерфейсов
     NUM_INTERFACES=${#INTERFACES[@]}
@@ -133,7 +133,6 @@ then
     fi
 
     echo "Активный сетевой интерфейс: $ACTIVE_INTERFACE"
-
 
     # Извлекаем текущие настройки IP и шлюза для активного интерфейса
     IP=$(awk "/iface $ACTIVE_INTERFACE/,/iface|auto/" $FILE | grep -oE 'address .*' | cut -d ' ' -f 2 | cut -d '/' -f 1)

@@ -26,6 +26,15 @@ do
     ((DISK_INDEX+=1))
 done
 
+# Check for EFI or MBR boot mode
+if [ -d /sys/firmware/efi ]; then
+    BOOT_MODE="efi"
+    QEMU_MACHINE_TYPE="q35"
+else
+    BOOT_MODE="mbr"
+    QEMU_MACHINE_TYPE="pc"
+fi
+
 function START_KVM {
     # generate random password
     VNC_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13 || true ; echo '')
@@ -34,24 +43,40 @@ function START_KVM {
     # Start KVM
     pkill qemu-system-x86 || true
     H1 "Please open VNC console to ${IP}, install PVE and press Next"
-    printf "change vnc password\n%s\n" ${VNC_PASSWORD} | qemu-system-x86_64 -enable-kvm -smp 4 -m 4096 -boot once=d -cdrom ./$ISO ${KVM_DISKS} -vnc 0.0.0.0:0,password -monitor stdio &>/dev/null &
+    printf "change vnc password\n%s\n" ${VNC_PASSWORD} | qemu-system-x86_64 -enable-kvm -smp 4 -m 4096 -boot once=d -cdrom ./$ISO ${KVM_DISKS} -M ${QEMU_MACHINE_TYPE} -vnc 0.0.0.0:0,password -monitor stdio &>/dev/null &
 
     read -e -p "> " -i "Next"
 }
 
+function DOWNLOAD_ISO {
+    URL=$1
+    WGET="wget --show-progress -N --progress=bar:force --content-disposition"
+    ${WGET} "$URL"
+    ISO=$(basename $URL)
+}
+
 if Q "Install PVE?"
 then
-    URL=$(curl -s https://www.proxmox.com/en/downloads/category/iso-images-pve | grep -o "/en/downloads?.*" | head -n1 | sed 's/".*//')
-    WGET="wget --show-progress -N --progress=bar:force --content-disposition"
-    ${WGET} "https://www.proxmox.com$URL"
-    ISO=$(ls proxmox-ve*)
+    URL=$(curl -s https://www.proxmox.com/en/downloads/proxmox-virtual-environment/iso | grep -o 'href="[^"]*">Download</a>' | sed -E 's/href="([^"]*)">Download<\/a>/\1/' | head -n1)
+    echo "$URL"
+    if [ -z "$URL" ]; then
+        echo "Could not find ISO on the website. Please enter URL to download PVE ISO:"
+        read -e -p "> " CUSTOM_URL
+        DOWNLOAD_ISO "$CUSTOM_URL"
+    else
+        DOWNLOAD_ISO "$URL"
+    fi
     START_KVM
 elif Q "Install PBS?"
 then
-    URL=$(curl -s https://www.proxmox.com/en/downloads/category/iso-images-pbs | grep -o "/en/downloads?.*" | head -n1 | sed 's/".*//')
-    WGET="wget --show-progress -N --progress=bar:force --content-disposition"
-    ${WGET} "https://www.proxmox.com$URL"
-    ISO=$(ls proxmox-backup-server*)
+    URL=$(curl -s https://www.proxmox.com/en/downloads/category/iso-images-pbs | grep -o "/en/downloads?.*" || true | head -n1 | sed 's/".*//')
+    if [ -z "$URL" ]; then
+        echo "Could not find ISO on the website. Please enter URL to download PBS ISO:"
+        read -e -p "> " CUSTOM_URL
+        DOWNLOAD_ISO "$CUSTOM_URL"
+    else
+        DOWNLOAD_ISO "$URL"
+    fi
     START_KVM
 fi
 

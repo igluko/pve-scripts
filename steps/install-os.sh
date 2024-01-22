@@ -129,12 +129,13 @@ ACTIVE_INTERFACES=()
 for IFACE in $ALL_INTERFACES; do
     # Проверяем, является ли интерфейс активным и не является USB
     if [[ "$(cat /sys/class/net/$IFACE/operstate)" == "up" ]] && [[ -z $(udevadm info --path=/sys/class/net/$IFACE | grep ID_BUS | grep usb) ]]; then
-        ID_NET_NAME_PATH=$(udevadm info --path=/sys/class/net/$IFACE | grep ID_NET_NAME_PATH | awk -F '=' '{print $2}')
-        if [ ! -z "$ID_NET_NAME_PATH" ]; then
-            ACTIVE_INTERFACES+=("$ID_NET_NAME_PATH")
+        ID_NET_NAME_ONBOARD=$(udevadm info --path=/sys/class/net/$IFACE | grep ID_NET_NAME_ONBOARD | awk -F '=' '{print $2}')
+        if [ ! -z "$ID_NET_NAME_ONBOARD" ]; then
+            ACTIVE_INTERFACES+=("$ID_NET_NAME_ONBOARD")
         fi
     fi
 done
+
 
 # Выбор активного интерфейса
 if [ ${#ACTIVE_INTERFACES[@]} -eq 1 ]; then

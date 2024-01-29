@@ -179,14 +179,21 @@ then
     echo "Обновленная конфигурация:"
     cat $CONFIG_FILE
 
-    # Путь к файлу hosts
+    # Путь к файлам
     HOSTS_FILE="/mnt/etc/hosts"
+    HOSTNAME_FILE="/mnt/etc/hostname"
 
-    # Получаем имя хоста системы
-    HOST_NAME=$(hostname)
+    # Чтение имени хоста из файла hostname
+    if [ -f "$HOSTNAME_FILE" ]; then
+        HOST_NAME=$(cat $HOSTNAME_FILE)
+    else
+        echo "Файл hostname не найден."
+        exit 1
+    fi
 
-    # Замена старого IP-адреса на новый в файле /etc/hosts
-    sed -i "s|${CURRENT_IP}.*|${NEW_IP} ${HOST_NAME}|" $HOSTS_FILE
+    # Замена IP-адреса в файле /etc/hosts
+    # Ищем строку, содержащую имя хоста, и заменяем в ней IP-адрес
+    sed -i "/$HOST_NAME/ s/^.*$/${NEW_IP} ${HOST_NAME}/" $HOSTS_FILE
 
     # Показываем обновленный файл hosts
     echo "Обновленный файл /etc/hosts:"

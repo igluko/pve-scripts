@@ -99,6 +99,19 @@ then
     # eval "zfs mount -o mountpoint=/mnt ${ZFS_ROOT} || true"
     zfs set mountpoint=/mnt ${ZFS_ROOT}
     zfs mount ${ZFS_ROOT} || true
+    
+    # Путь к файлу hosts
+    HOSTS_FILE="/mnt/etc/hosts"
+
+    # Получаем имя хоста системы
+    HOST_NAME=$(hostname)
+
+    # Замена старого IP-адреса на новый в файле /etc/hosts
+    sed -i "s|${CURRENT_IP}.*|${NEW_IP} ${HOST_NAME}|" $HOSTS_FILE
+
+    # Показываем обновленный файл hosts
+    echo "Обновленный файл /etc/hosts:"
+    cat $HOSTS_FILE
 
     printf "${GREEN}"
     for i in $(ls /sys/class/net/ | grep -v lo)
@@ -107,80 +120,77 @@ then
     done
     printf "${NC}"
 
-set -x
+    # Путь к файлу конфигурации
+    CONFIG_FILE="/mnt/etc/network/interfaces"
 
-# Путь к файлу конфигурации
-CONFIG_FILE="/mnt/etc/network/interfaces"
+    # Извлекаем текущий интерфейс, используемый в конфигурации vmbr0
+    CURRENT_INTERFACE=$(awk '/bridge-ports/ {print $2}' $CONFIG_FILE)
 
-# Извлекаем текущий интерфейс, используемый в конфигурации vmbr0
-CURRENT_INTERFACE=$(awk '/bridge-ports/ {print $2}' $CONFIG_FILE)
-
-# Убедитесь, что CURRENT_INTERFACE был определен
-if [ -z "$CURRENT_INTERFACE" ] || [ "$CURRENT_INTERFACE" = "none" ]; then
-    echo "Текущий интерфейс не найден в файле конфигурации."
-    exit 1
-fi
-
-# Получаем список всех физических сетевых интерфейсов, исключая loopback, docker и veth
-ALL_INTERFACES=$(ls /sys/class/net | grep -v 'lo\|docker\|veth')
-
-# Определяем активные проводные интерфейсы
-ACTIVE_INTERFACES=()
-for IFACE in $ALL_INTERFACES; do
-    # Проверяем, является ли интерфейс активным и не является USB
-    if [[ "$(cat /sys/class/net/$IFACE/operstate)" == "up" ]] && [[ -z $(udevadm info --path=/sys/class/net/$IFACE | grep ID_BUS | grep usb) ]]; then
-        ID_NET_NAME_ONBOARD=$(udevadm info --path=/sys/class/net/$IFACE | grep ID_NET_NAME_ONBOARD | awk -F '=' '{print $2}')
-        if [ ! -z "$ID_NET_NAME_ONBOARD" ]; then
-            ACTIVE_INTERFACES+=("$ID_NET_NAME_ONBOARD")
-        fi
+    # Убедитесь, что CURRENT_INTERFACE был определен
+    if [ -z "$CURRENT_INTERFACE" ] || [ "$CURRENT_INTERFACE" = "none" ]; then
+        echo "Текущий интерфейс не найден в файле конфигурации."
+        exit 1
     fi
-done
 
+    # Получаем список всех физических сетевых интерфейсов, исключая loopback, docker и veth
+    ALL_INTERFACES=$(ls /sys/class/net | grep -v 'lo\|docker\|veth')
 
-# Выбор активного интерфейса
-if [ ${#ACTIVE_INTERFACES[@]} -eq 1 ]; then
-    # Если найден только один активный интерфейс, используем его
-    ACTIVE_INTERFACE=${ACTIVE_INTERFACES[0]}
-elif [ ${#ACTIVE_INTERFACES[@]} -gt 1 ]; then
-    # Если есть несколько активных интерфейсов, предлагаем пользователю выбрать
-    echo "Найдено несколько активных проводных интерфейсов. Пожалуйста, выберите один:"
-    for i in "${!ACTIVE_INTERFACES[@]}"; do
-        echo "$((i+1))) ${ACTIVE_INTERFACES[$i]}"
+    # Определяем активные проводные интерфейсы
+    ACTIVE_INTERFACES=()
+    for IFACE in $ALL_INTERFACES; do
+        # Проверяем, является ли интерфейс активным и не является USB
+        if [[ "$(cat /sys/class/net/$IFACE/operstate)" == "up" ]] && [[ -z $(udevadm info --path=/sys/class/net/$IFACE | grep ID_BUS | grep usb) ]]; then
+            ID_NET_NAME_ONBOARD=$(udevadm info --path=/sys/class/net/$IFACE | grep ID_NET_NAME_ONBOARD | awk -F '=' '{print $2}')
+            if [ ! -z "$ID_NET_NAME_ONBOARD" ]; then
+                ACTIVE_INTERFACES+=("$ID_NET_NAME_ONBOARD")
+            fi
+        fi
     done
-    read -p "Введите номер интерфейса: " INTERFACE_CHOICE
-    ACTIVE_INTERFACE=${ACTIVE_INTERFACES[$((INTERFACE_CHOICE-1))]}
-else
-    echo "Активные проводные интерфейсы не найдены."
-    exit 1
-fi
 
-echo "Выбранный интерфейс: $ACTIVE_INTERFACE"
 
-# Извлекаем текущие настройки IP и шлюза
-CURRENT_IP=$(grep 'address' $CONFIG_FILE | grep -v 'lo' | awk '{print $2}')
-CURRENT_GATEWAY=$(grep 'gateway' $CONFIG_FILE | awk '{print $2}')
+    # Выбор активного интерфейса
+    if [ ${#ACTIVE_INTERFACES[@]} -eq 1 ]; then
+        # Если найден только один активный интерфейс, используем его
+        ACTIVE_INTERFACE=${ACTIVE_INTERFACES[0]}
+    elif [ ${#ACTIVE_INTERFACES[@]} -gt 1 ]; then
+        # Если есть несколько активных интерфейсов, предлагаем пользователю выбрать
+        echo "Найдено несколько активных проводных интерфейсов. Пожалуйста, выберите один:"
+        for i in "${!ACTIVE_INTERFACES[@]}"; do
+            echo "$((i+1))) ${ACTIVE_INTERFACES[$i]}"
+        done
+        read -p "Введите номер интерфейса: " INTERFACE_CHOICE
+        ACTIVE_INTERFACE=${ACTIVE_INTERFACES[$((INTERFACE_CHOICE-1))]}
+    else
+        echo "Активные проводные интерфейсы не найдены."
+        exit 1
+    fi
 
-# Запрашиваем у пользователя новые значения, предлагая текущие в качестве значений по умолчанию
-read -e -p "Введите новый IP-адрес: " -i "$CURRENT_IP" NEW_IP
-NEW_IP=${NEW_IP:-$CURRENT_IP}
+    echo "Выбранный интерфейс: $ACTIVE_INTERFACE"
 
-read -e -p "Введите новый шлюз: " -i "$CURRENT_GATEWAY" NEW_GATEWAY
-NEW_GATEWAY=${NEW_GATEWAY:-$CURRENT_GATEWAY}
+    # Извлекаем текущие настройки IP и шлюза
+    CURRENT_IP=$(grep 'address' $CONFIG_FILE | grep -v 'lo' | awk '{print $2}')
+    CURRENT_GATEWAY=$(grep 'gateway' $CONFIG_FILE | awk '{print $2}')
 
-# Выводим обновленные значения
-echo "Новый IP-адрес: $NEW_IP"
-echo "Новый шлюз: $NEW_GATEWAY"
+    # Запрашиваем у пользователя новые значения, предлагая текущие в качестве значений по умолчанию
+    read -e -p "Введите новый IP-адрес: " -i "$CURRENT_IP" NEW_IP
+    NEW_IP=${NEW_IP:-$CURRENT_IP}
 
-# Теперь используем переменную ACTIVE_INTERFACE для обновления файла конфигурации
-sed -i "s|iface $CURRENT_INTERFACE inet manual|iface $ACTIVE_INTERFACE inet manual|" $CONFIG_FILE
-sed -i "/iface vmbr0 inet static/,/iface|auto|source/ s|address .*|address $NEW_IP|" $CONFIG_FILE
-sed -i "/iface vmbr0 inet static/,/iface|auto|source/ s|gateway .*|gateway $NEW_GATEWAY|" $CONFIG_FILE
-sed -i "s|bridge-ports $CURRENT_INTERFACE|bridge-ports $ACTIVE_INTERFACE|" $CONFIG_FILE
+    read -e -p "Введите новый шлюз: " -i "$CURRENT_GATEWAY" NEW_GATEWAY
+    NEW_GATEWAY=${NEW_GATEWAY:-$CURRENT_GATEWAY}
 
-# Выводим обновленную конфигурацию
-echo "Обновленная конфигурация:"
-cat $CONFIG_FILE
+    # Выводим обновленные значения
+    echo "Новый IP-адрес: $NEW_IP"
+    echo "Новый шлюз: $NEW_GATEWAY"
 
+    # Теперь используем переменную ACTIVE_INTERFACE для обновления файла конфигурации
+    sed -i "s|iface $CURRENT_INTERFACE inet manual|iface $ACTIVE_INTERFACE inet manual|" $CONFIG_FILE
+    sed -i "/iface vmbr0 inet static/,/iface|auto|source/ s|address .*|address $NEW_IP|" $CONFIG_FILE
+    sed -i "/iface vmbr0 inet static/,/iface|auto|source/ s|gateway .*|gateway $NEW_GATEWAY|" $CONFIG_FILE
+    sed -i "s|bridge-ports $CURRENT_INTERFACE|bridge-ports $ACTIVE_INTERFACE|" $CONFIG_FILE
+
+    # Выводим обновленную конфигурацию
+    echo "Обновленная конфигурация:"
+    cat $CONFIG_FILE
 
     eval "zfs set mountpoint=/ ${ZFS_ROOT}"
     eval "zpool export rpool"
@@ -191,5 +201,4 @@ cat $CONFIG_FILE
     H1 "PBS -   https://${IP}:8007"
 
     Q "reboot?" && reboot
-
 fi

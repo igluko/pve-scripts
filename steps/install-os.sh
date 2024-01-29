@@ -99,19 +99,6 @@ then
     # eval "zfs mount -o mountpoint=/mnt ${ZFS_ROOT} || true"
     zfs set mountpoint=/mnt ${ZFS_ROOT}
     zfs mount ${ZFS_ROOT} || true
-    
-    # Путь к файлу hosts
-    HOSTS_FILE="/mnt/etc/hosts"
-
-    # Получаем имя хоста системы
-    HOST_NAME=$(hostname)
-
-    # Замена старого IP-адреса на новый в файле /etc/hosts
-    sed -i "s|${CURRENT_IP}.*|${NEW_IP} ${HOST_NAME}|" $HOSTS_FILE
-
-    # Показываем обновленный файл hosts
-    echo "Обновленный файл /etc/hosts:"
-    cat $HOSTS_FILE
 
     printf "${GREEN}"
     for i in $(ls /sys/class/net/ | grep -v lo)
@@ -191,6 +178,19 @@ then
     # Выводим обновленную конфигурацию
     echo "Обновленная конфигурация:"
     cat $CONFIG_FILE
+
+    # Путь к файлу hosts
+    HOSTS_FILE="/mnt/etc/hosts"
+
+    # Получаем имя хоста системы
+    HOST_NAME=$(hostname)
+
+    # Замена старого IP-адреса на новый в файле /etc/hosts
+    sed -i "s|${CURRENT_IP}.*|${NEW_IP} ${HOST_NAME}|" $HOSTS_FILE
+
+    # Показываем обновленный файл hosts
+    echo "Обновленный файл /etc/hosts:"
+    cat $HOSTS_FILE
 
     eval "zfs set mountpoint=/ ${ZFS_ROOT}"
     eval "zpool export rpool"

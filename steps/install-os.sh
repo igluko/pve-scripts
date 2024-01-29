@@ -179,26 +179,35 @@ then
     echo "Обновленная конфигурация:"
     cat $CONFIG_FILE
 
-    # Путь к файлам
+    # Путь к файлам    
     HOSTS_FILE="/mnt/etc/hosts"
     HOSTNAME_FILE="/mnt/etc/hostname"
 
-    # Чтение имени хоста из файла hostname
+    # Чтение короткого имени хоста из файла hostname
     if [ -f "$HOSTNAME_FILE" ]; then
-        HOST_NAME=$(cat $HOSTNAME_FILE)
+        SHORT_NAME=$(cat $HOSTNAME_FILE)
     else
         echo "Файл hostname не найден."
         exit 1
     fi
 
+    # Попытка определить FQDN из файла /etc/hosts
+    # Ищем строку, содержащую короткое имя хоста, и вытаскиваем FQDN
+    FQDN=$(grep "$SHORT_NAME" $HOSTS_FILE | awk '{print $2}')
+
+    # Если FQDN не найден, используем короткое имя хоста
+    if [ -z "$FQDN" ]; then
+        FQDN=$SHORT_NAME
+    fi
+
     # Замена IP-адреса в файле /etc/hosts
-    # Ищем строку, содержащую имя хоста, и заменяем в ней IP-адрес
-    # Используем '|' вместо '/' в качестве разделителя для sed
-    sed -i "|$HOST_NAME| s|.*|${NEW_IP} ${HOST_NAME}|" $HOSTS_FILE
+    # Ищем строки, содержащие короткое имя хоста, и заменяем их на новый формат
+    sed -i "s|.* ${SHORT_NAME}$|${NEW_IP} ${FQDN} ${SHORT_NAME}|" $HOSTS_FILE
 
     # Показываем обновленный файл hosts
     echo "Обновленный файл /etc/hosts:"
     cat $HOSTS_FILE
+
 
     eval "zfs set mountpoint=/ ${ZFS_ROOT}"
     eval "zpool export rpool"

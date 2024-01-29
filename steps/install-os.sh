@@ -193,7 +193,8 @@ then
 
     # Замена IP-адреса в файле /etc/hosts
     # Ищем строку, содержащую имя хоста, и заменяем в ней IP-адрес
-    sed -i "/$HOST_NAME/ s/^.*$/${NEW_IP} ${HOST_NAME}/" $HOSTS_FILE
+    # Используем '|' вместо '/' в качестве разделителя для sed
+    sed -i "|$HOST_NAME| s|.*|${NEW_IP} ${HOST_NAME}|" $HOSTS_FILE
 
     # Показываем обновленный файл hosts
     echo "Обновленный файл /etc/hosts:"

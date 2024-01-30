@@ -178,11 +178,18 @@ then
     sed -i "s|iface $CURRENT_INTERFACE inet manual|iface $ACTIVE_INTERFACE inet manual|" $CONFIG_FILE
     sed -i "s|bridge-ports $CURRENT_INTERFACE|bridge-ports $ACTIVE_INTERFACE|" $CONFIG_FILE
 
+    # Обновляем DNS сервер в /etc/resolv.conf
+    RESOLV_CONF="/mnt/etc/resolv.conf"
+    sed -i "s|nameserver .*|nameserver 1.1.1.1|" $RESOLV_CONF
+
     echo "Обновленная конфигурация:"
     cat $CONFIG_FILE
 
     echo "Обновленный файл /etc/hosts:"
     cat $HOSTS_FILE
+
+    echo "Обновленный файл /etc/resolv.conf:"
+    cat $RESOLV_CONF
 
     read -p "Вы хотите размонтировать файловую систему? [y/N]: " UMOUNT_FS
 

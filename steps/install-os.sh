@@ -151,10 +151,8 @@ then
     then
         NEW_IP=$HOST_IP
 
-        HOSTS_FILE="/mnt/etc/hosts"
-        HOSTNAME_FILE="/mnt/etc/hostname"
-
         # Проверяем, существует ли файл /etc/hostname
+        HOSTNAME_FILE="/mnt/etc/hostname"
         if [ -f "$HOSTNAME_FILE" ]; then
             SHORT_NAME=$(cat $HOSTNAME_FILE)
         else
@@ -162,12 +160,19 @@ then
             exit 1
         fi
 
-        # Обновляем файлы конфигурации
+        # Получаем FQDN из файла hosts
+        HOSTS_FILE="/mnt/etc/hosts"
         FQDN=$(grep "$SHORT_NAME" $HOSTS_FILE | awk '{print $2}')
         FQDN=${FQDN:-$SHORT_NAME}
 
+        # Перед обновлением IP и шлюза спрашиваем у пользователя
+        read -e -p "Введите новый шлюз: " -i "$CURRENT_GATEWAY" NEW_GATEWAY
+        NEW_GATEWAY=${NEW_GATEWAY:-$CURRENT_GATEWAY}
+
+        # Обновляем файлы конфигурации
         sed -i "/iface vmbr0 inet static/,/iface|auto|source/ s|address .*|address $NEW_IP|" $CONFIG_FILE
         sed -i "s|.* ${SHORT_NAME}$|${NEW_IP} ${FQDN} ${SHORT_NAME}|" $HOSTS_FILE
+        sed -i "/gateway /c\gateway $NEW_GATEWAY" $CONFIG_FILE
 
         # Обновляем DNS сервер в /etc/resolv.conf
         RESOLV_CONF="/mnt/etc/resolv.conf"

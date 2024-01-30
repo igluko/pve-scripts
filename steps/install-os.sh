@@ -150,37 +150,35 @@ then
     if [[ $CHANGE_IP =~ ^[Yy]$ ]]
     then
         NEW_IP=$HOST_IP
+
+        HOSTS_FILE="/mnt/etc/hosts"
+        HOSTNAME_FILE="/mnt/etc/hostname"
+
+        # Проверяем, существует ли файл /etc/hostname
+        if [ -f "$HOSTNAME_FILE" ]; then
+            SHORT_NAME=$(cat $HOSTNAME_FILE)
+        else
+            echo "Файл hostname не найден."
+            exit 1
+        fi
+
+        # Обновляем файлы конфигурации
+        FQDN=$(grep "$SHORT_NAME" $HOSTS_FILE | awk '{print $2}')
+        FQDN=${FQDN:-$SHORT_NAME}
+
         sed -i "/iface vmbr0 inet static/,/iface|auto|source/ s|address .*|address $NEW_IP|" $CONFIG_FILE
         sed -i "s|.* ${SHORT_NAME}$|${NEW_IP} ${FQDN} ${SHORT_NAME}|" $HOSTS_FILE
+
+        # Обновляем DNS сервер в /etc/resolv.conf
+        RESOLV_CONF="/mnt/etc/resolv.conf"
+        sed -i "s|nameserver .*|nameserver 1.1.1.1|" $RESOLV_CONF
     fi
-
-    HOSTS_FILE="/mnt/etc/hosts"
-    HOSTNAME_FILE="/mnt/etc/hostname"
-
-    if [ -f "$HOSTNAME_FILE" ]; then
-        SHORT_NAME=$(cat $HOSTNAME_FILE)
-    else
-        echo "Файл hostname не найден."
-        exit 1
-    fi
-
-    FQDN=$(grep "$SHORT_NAME" $HOSTS_FILE | awk '{print $2}')
-    if [ -z "$FQDN" ]; then
-        FQDN=$SHORT_NAME
-    fi
-
-    read -e -p "Введите новый шлюз: " -i "$CURRENT_GATEWAY" NEW_GATEWAY
-    NEW_GATEWAY=${NEW_GATEWAY:-$CURRENT_GATEWAY}
 
     echo "Новый IP-адрес: $NEW_IP"
     echo "Новый шлюз: $NEW_GATEWAY"
 
     sed -i "s|iface $CURRENT_INTERFACE inet manual|iface $ACTIVE_INTERFACE inet manual|" $CONFIG_FILE
     sed -i "s|bridge-ports $CURRENT_INTERFACE|bridge-ports $ACTIVE_INTERFACE|" $CONFIG_FILE
-
-    # Обновляем DNS сервер в /etc/resolv.conf
-    RESOLV_CONF="/mnt/etc/resolv.conf"
-    sed -i "s|nameserver .*|nameserver 1.1.1.1|" $RESOLV_CONF
 
     echo "Обновленная конфигурация:"
     cat $CONFIG_FILE
@@ -201,8 +199,8 @@ then
 
     H1 "Proxmox will be enabled at this link in 2 minutes after reboot"
 
-    H1 "PVE -   https://${HOST_IP}:8006"
-    H1 "PBS -   https://${HOST_IP}:8007"
+    H1 "PVE -   https://${NEW_IP}:8006"
+    H1 "PBS -   https://${NEW_IP}:8007"
 
     Q "reboot?" && reboot
 fi

@@ -26,7 +26,8 @@ then
     eval "systemctl enable syncthing@root"
     eval "systemctl start syncthing@root"
 fi
-# Проверяем результат
+# Ждем запуска службы и проверяем результат
+sleep 15
 eval "systemctl status --no-pager syncthing@root"
 
 # Добавляем в syncthing папку iso, если она присутствует на хосте

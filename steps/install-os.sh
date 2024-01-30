@@ -18,7 +18,8 @@ DISKS=$(lsblk -o NAME,SIZE,TYPE | grep disk | awk '{print $1}')
 KVM_DISKS=""
 DISK_INDEX=0
 
-IP=$(hostname -I | awk '{print $1}')
+# Получаем текущий IP адрес хоста
+HOST_IP=$(hostname -I | awk '{print $1}')
 
 for disk in ${DISKS}
 do
@@ -44,7 +45,7 @@ function START_KVM {
 
     # Start KVM
     pkill qemu-system-x86 || true
-    H1 "Please open VNC console to ${IP}, install PVE and press Next"
+    H1 "Please open VNC console to ${HOST_IP}, install PVE and press Next"
     printf "change vnc password\n%s\n" ${VNC_PASSWORD} | qemu-system-x86_64 -enable-kvm -smp 4 -m 4096 -boot once=d -cdrom ./$ISO ${KVM_DISKS} -M ${QEMU_MACHINE_TYPE} -vnc 0.0.0.0:0,password -monitor stdio &>/dev/null &
 
     read -e -p "> " -i "Next"
@@ -93,10 +94,6 @@ then
 
     ZFS_ROOT=$(zfs list -o name -H | grep rpool/ROOT/...-1)
 
-    # -o options An optional, comma-separated list of mount options to use temporarily for the duration of the mount
-    # Not worked
-    # https://github.com/openzfs/zfs/issues/4553
-    # eval "zfs mount -o mountpoint=/mnt ${ZFS_ROOT} || true"
     zfs set mountpoint=/mnt ${ZFS_ROOT}
     zfs mount ${ZFS_ROOT} || true
 
@@ -107,25 +104,18 @@ then
     done
     printf "${NC}"
 
-    # Путь к файлу конфигурации
     CONFIG_FILE="/mnt/etc/network/interfaces"
-
-    # Извлекаем текущий интерфейс, используемый в конфигурации vmbr0
     CURRENT_INTERFACE=$(awk '/bridge-ports/ {print $2}' $CONFIG_FILE)
 
-    # Убедитесь, что CURRENT_INTERFACE был определен
     if [ -z "$CURRENT_INTERFACE" ] || [ "$CURRENT_INTERFACE" = "none" ]; then
         echo "Текущий интерфейс не найден в файле конфигурации."
         exit 1
     fi
 
-    # Получаем список всех физических сетевых интерфейсов, исключая loopback, docker и veth
     ALL_INTERFACES=$(ls /sys/class/net | grep -v 'lo\|docker\|veth')
 
-    # Определяем активные проводные интерфейсы
     ACTIVE_INTERFACES=()
     for IFACE in $ALL_INTERFACES; do
-        # Проверяем, является ли интерфейс активным и не является USB
         if [[ "$(cat /sys/class/net/$IFACE/operstate)" == "up" ]] && [[ -z $(udevadm info --path=/sys/class/net/$IFACE | grep ID_BUS | grep usb) ]]; then
             ID_NET_NAME_ONBOARD=$(udevadm info --path=/sys/class/net/$IFACE | grep ID_NET_NAME_ONBOARD | awk -F '=' '{print $2}')
             if [ ! -z "$ID_NET_NAME_ONBOARD" ]; then
@@ -134,13 +124,9 @@ then
         fi
     done
 
-
-    # Выбор активного интерфейса
     if [ ${#ACTIVE_INTERFACES[@]} -eq 1 ]; then
-        # Если найден только один активный интерфейс, используем его
         ACTIVE_INTERFACE=${ACTIVE_INTERFACES[0]}
     elif [ ${#ACTIVE_INTERFACES[@]} -gt 1 ]; then
-        # Если есть несколько активных интерфейсов, предлагаем пользователю выбрать
         echo "Найдено несколько активных проводных интерфейсов. Пожалуйста, выберите один:"
         for i in "${!ACTIVE_INTERFACES[@]}"; do
             echo "$((i+1))) ${ACTIVE_INTERFACES[$i]}"
@@ -154,36 +140,23 @@ then
 
     echo "Выбранный интерфейс: $ACTIVE_INTERFACE"
 
-    # Извлекаем текущие настройки IP и шлюза
-    CURRENT_IP=$(grep 'address' $CONFIG_FILE | grep -v 'lo' | awk '{print $2}')
+    MOUNTED_FS_IP=$(grep 'address' $CONFIG_FILE | grep -v 'lo' | awk '{print $2}')
     CURRENT_GATEWAY=$(grep 'gateway' $CONFIG_FILE | awk '{print $2}')
 
-    # Запрашиваем у пользователя новые значения, предлагая текущие в качестве значений по умолчанию
-    read -e -p "Введите новый IP-адрес: " -i "$CURRENT_IP" NEW_IP
-    NEW_IP=${NEW_IP:-$CURRENT_IP}
+    echo "Текущий IP в смонтированной файловой системе: $MOUNTED_FS_IP"
+    echo "Текущий IP хоста: $HOST_IP"
+    read -p "Вы хотите изменить IP адрес на $HOST_IP? [y/N]: " CHANGE_IP
 
-    read -e -p "Введите новый шлюз: " -i "$CURRENT_GATEWAY" NEW_GATEWAY
-    NEW_GATEWAY=${NEW_GATEWAY:-$CURRENT_GATEWAY}
+    if [[ $CHANGE_IP =~ ^[Yy]$ ]]
+    then
+        NEW_IP=$HOST_IP
+        sed -i "/iface vmbr0 inet static/,/iface|auto|source/ s|address .*|address $NEW_IP|" $CONFIG_FILE
+        sed -i "s|.* ${SHORT_NAME}$|${NEW_IP} ${FQDN} ${SHORT_NAME}|" $HOSTS_FILE
+    fi
 
-    # Выводим обновленные значения
-    echo "Новый IP-адрес: $NEW_IP"
-    echo "Новый шлюз: $NEW_GATEWAY"
-
-    # Теперь используем переменную ACTIVE_INTERFACE для обновления файла конфигурации
-    sed -i "s|iface $CURRENT_INTERFACE inet manual|iface $ACTIVE_INTERFACE inet manual|" $CONFIG_FILE
-    sed -i "/iface vmbr0 inet static/,/iface|auto|source/ s|address .*|address $NEW_IP|" $CONFIG_FILE
-    sed -i "/iface vmbr0 inet static/,/iface|auto|source/ s|gateway .*|gateway $NEW_GATEWAY|" $CONFIG_FILE
-    sed -i "s|bridge-ports $CURRENT_INTERFACE|bridge-ports $ACTIVE_INTERFACE|" $CONFIG_FILE
-
-    # Выводим обновленную конфигурацию
-    echo "Обновленная конфигурация:"
-    cat $CONFIG_FILE
-
-    # Путь к файлам    
     HOSTS_FILE="/mnt/etc/hosts"
     HOSTNAME_FILE="/mnt/etc/hostname"
 
-    # Чтение короткого имени хоста из файла hostname
     if [ -f "$HOSTNAME_FILE" ]; then
         SHORT_NAME=$(cat $HOSTNAME_FILE)
     else
@@ -191,31 +164,38 @@ then
         exit 1
     fi
 
-    # Попытка определить FQDN из файла /etc/hosts
-    # Ищем строку, содержащую короткое имя хоста, и вытаскиваем FQDN
     FQDN=$(grep "$SHORT_NAME" $HOSTS_FILE | awk '{print $2}')
-
-    # Если FQDN не найден, используем короткое имя хоста
     if [ -z "$FQDN" ]; then
         FQDN=$SHORT_NAME
     fi
 
-    # Замена IP-адреса в файле /etc/hosts
-    # Ищем строки, содержащие короткое имя хоста, и заменяем их на новый формат
-    sed -i "s|.* ${SHORT_NAME}$|${NEW_IP} ${FQDN} ${SHORT_NAME}|" $HOSTS_FILE
+    read -e -p "Введите новый шлюз: " -i "$CURRENT_GATEWAY" NEW_GATEWAY
+    NEW_GATEWAY=${NEW_GATEWAY:-$CURRENT_GATEWAY}
 
-    # Показываем обновленный файл hosts
+    echo "Новый IP-адрес: $NEW_IP"
+    echo "Новый шлюз: $NEW_GATEWAY"
+
+    sed -i "s|iface $CURRENT_INTERFACE inet manual|iface $ACTIVE_INTERFACE inet manual|" $CONFIG_FILE
+    sed -i "s|bridge-ports $CURRENT_INTERFACE|bridge-ports $ACTIVE_INTERFACE|" $CONFIG_FILE
+
+    echo "Обновленная конфигурация:"
+    cat $CONFIG_FILE
+
     echo "Обновленный файл /etc/hosts:"
     cat $HOSTS_FILE
 
+    read -p "Вы хотите размонтировать файловую систему? [y/N]: " UMOUNT_FS
 
-    eval "zfs set mountpoint=/ ${ZFS_ROOT}"
-    eval "zpool export rpool"
+    if [[ $UMOUNT_FS =~ ^[Yy]$ ]]
+    then
+        eval "zfs set mountpoint=/ ${ZFS_ROOT}"
+        eval "zpool export rpool"
+    fi
 
     H1 "Proxmox will be enabled at this link in 2 minutes after reboot"
 
-    H1 "PVE -   https://${IP}:8006"
-    H1 "PBS -   https://${IP}:8007"
+    H1 "PVE -   https://${HOST_IP}:8006"
+    H1 "PBS -   https://${HOST_IP}:8007"
 
     Q "reboot?" && reboot
 fi

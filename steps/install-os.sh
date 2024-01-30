@@ -20,6 +20,8 @@ DISK_INDEX=0
 
 # Получаем текущий IP адрес хоста
 HOST_IP=$(hostname -I | awk '{print $1}')
+# Получаем текущий шлюз
+HOST_GATEWAY=$(ip route | grep default | awk '{print $3}')
 
 for disk in ${DISKS}
 do
@@ -141,15 +143,20 @@ then
     echo "Выбранный интерфейс: $ACTIVE_INTERFACE"
 
     MOUNTED_FS_IP=$(grep 'address' $CONFIG_FILE | grep -v 'lo' | awk '{print $2}')
-    CURRENT_GATEWAY=$(grep 'gateway' $CONFIG_FILE | awk '{print $2}')
+    MOUNTED_FS_GATEWAY=$(grep 'gateway' $CONFIG_FILE | awk '{print $2}')
 
     echo "Текущий IP в смонтированной файловой системе: $MOUNTED_FS_IP"
+    echo "Текущий шлюз в смонтированной файловой системе: $MOUNTED_FS_GATEWAY"
     echo "Текущий IP хоста: $HOST_IP"
+    echo "Текущий шлюз хоста: $HOST_GATEWAY"
     read -p "Вы хотите изменить IP адрес на $HOST_IP? [y/N]: " CHANGE_IP
 
     if [[ $CHANGE_IP =~ ^[Yy]$ ]]
     then
         NEW_IP=$HOST_IP
+        # Перед обновлением шлюза спрашиваем у пользователя
+        read -e -p "Вы хотите изменить шлюз на $HOST_GATEWAY? [y/N]: " CHANGE_GATEWAY
+        NEW_GATEWAY=${CHANGE_GATEWAY:-$MOUNTED_FS_GATEWAY}
 
         # Проверяем, существует ли файл /etc/hostname
         HOSTNAME_FILE="/mnt/etc/hostname"
@@ -164,10 +171,6 @@ then
         HOSTS_FILE="/mnt/etc/hosts"
         FQDN=$(grep "$SHORT_NAME" $HOSTS_FILE | awk '{print $2}')
         FQDN=${FQDN:-$SHORT_NAME}
-
-        # Перед обновлением IP и шлюза спрашиваем у пользователя
-        read -e -p "Введите новый шлюз: " -i "$CURRENT_GATEWAY" NEW_GATEWAY
-        NEW_GATEWAY=${NEW_GATEWAY:-$CURRENT_GATEWAY}
 
         # Обновляем файлы конфигурации
         sed -i "/iface vmbr0 inet static/,/iface|auto|source/ s|address .*|address $NEW_IP|" $CONFIG_FILE

@@ -7,24 +7,21 @@
 #-add_cron - добавит скрипт в cron на ежедневное выполнение в 8:00 с параметрами -t 8 -silent -skip_id_from 800
 
 import sys, time, socket, os, subprocess
+
 try:
-    import pip
+    import paramiko
 except ModuleNotFoundError:
-    os.system('apt-get install -y python3-pip > /dev/null')
-try:
-    import openssh_wrapper
-except ModuleNotFoundError:
-    os.system('python3 -m pip -q install openssh_wrapper > /dev/null') 
-    import openssh_wrapper
+    os.system('apt install -y python3-paramiko > /dev/null 2>&1') 
+    import paramiko
 try:
     import requests
 except ModuleNotFoundError:
-    os.system('python3 -m pip -q install requests > /dev/null') 
+    os.system('apt install -y python3-requests > /dev/null 2>&1') 
     import requests
 try:
     from proxmoxer import ProxmoxAPI
 except ModuleNotFoundError:
-    os.system('python3 -m pip -q install proxmoxer > /dev/null')
+    os.system('apt install -y python3-proxmoxer > /dev/null 2>&1')
     from proxmoxer import ProxmoxAPI
 
 def p_red(text):
@@ -39,7 +36,7 @@ def add_cron():
     try:
         from crontab import CronTab
     except ModuleNotFoundError:
-        os.system('python3 -m pip -q install python-crontab > /dev/null') 
+        os.system('apt install -y python3-crontab > /dev/null 2>&1') 
         from crontab import CronTab
 
     cron = CronTab(user='root')
@@ -194,7 +191,7 @@ def send_tg(msg):
             sys.exit(response.text + msg)
 
 # Параметры подключения
-proxmox = ProxmoxAPI(socket.gethostname(), user="root", backend='openssh', service='pve')
+proxmox = ProxmoxAPI(socket.gethostname(), user="root", backend='ssh_paramiko', service='pve')
 
 delta_time, silent, skip_id_from, tg = check_args()
 

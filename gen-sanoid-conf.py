@@ -7,7 +7,7 @@ import sys, os, subprocess, socket, json
 try:
     import requests
 except ModuleNotFoundError:
-    os.system('python3 -m pip -q install requests > /dev/null') 
+    os.system('apt install -y python3-requests > /dev/null 2>&1') 
     import requests
 
 NodeName = socket.gethostname()
@@ -32,7 +32,7 @@ def add_cron():
     try:
         from crontab import CronTab
     except ModuleNotFoundError:
-        os.system('python3 -m pip -q install python-crontab > /dev/null') 
+        os.system('apt install -y python3-crontab > /dev/null 2>&1') 
         from crontab import CronTab
 
     cron = CronTab(user='root')

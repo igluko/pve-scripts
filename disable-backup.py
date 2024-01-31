@@ -4,19 +4,16 @@
 #Нужно указать начиная с какого vmid нужно отключить бекап у дисков -disable_id_from <vmid>
 
 import sys, time, socket, os
+
 try:
-    import pip
+    import paramiko
 except ModuleNotFoundError:
-    os.system('apt-get install -y python3-pip > /dev/null')
-try:
-    import openssh_wrapper
-except ModuleNotFoundError:
-    os.system('python3 -m pip -q install openssh_wrapper > /dev/null') 
-    import openssh_wrapper
+    os.system('apt install -y python3-paramiko > /dev/null 2>&1') 
+    import paramiko
 try:
     from proxmoxer import ProxmoxAPI
 except ModuleNotFoundError:
-    os.system('python3 -m pip -q install proxmoxer > /dev/null')
+    os.system('apt install -y python3-proxmoxer > /dev/null 2>&1')
     from proxmoxer import ProxmoxAPI
 
 def p_red(text):
@@ -31,7 +28,7 @@ def add_cron():
     try:
         from crontab import CronTab
     except ModuleNotFoundError:
-        os.system('python3 -m pip -q install python-crontab > /dev/null') 
+        os.system('apt install -y python3-crontab > /dev/null 2>&1') 
         from crontab import CronTab
 
     cron = CronTab(user='root')
@@ -112,7 +109,7 @@ def set_backup_0(proxmox, vm_disks):
 
 disable_id_from = check_args()
 
-proxmox = ProxmoxAPI(socket.gethostname(), user="root", backend='openssh', service='pve')
+proxmox = ProxmoxAPI(socket.gethostname(), user="root", backend='ssh_paramiko', service='pve')
 
 vms = get_vm_ids(proxmox, disable_id_from)
 storages = get_pbs_stor(proxmox)

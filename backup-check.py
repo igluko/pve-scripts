@@ -94,6 +94,13 @@ def get_pbs_stor(proxmox):
     PBSSum = 0
     for stor in storages:
         if (stor['type'] == 'pbs') and ( not ('disable' in stor)):
+            if 'nodes' in stor:
+                if (socket.gethostname() in stor['nodes']):
+                    PBSSum += 1
+                    storage = stor
+                    continue
+                else:
+                    continue
             PBSSum += 1
             storage = stor
     if PBSSum != 1: 

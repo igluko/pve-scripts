@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###
-# Скрипт для проверки свежести syncoid снимков.
+# Скрипт для проверки свежести sancoid снимков.
 # Скрипт найдет иснимки старше чем переданное количество часов.
 # Если снимки будут найдены, скрипт отправит сообщение в телеграм
 # На сервере должны быть настроены глобальные переменные окружения $TG_TOKEN и $TG_CHAT (/etc/environment)
@@ -74,4 +74,60 @@ if [[ "$OLD_SNAPS" != "" ]]
 then
     HEADER="Найдены старые снимки Syncoid на $(hostname)"
     curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>$HEADER</b>%0A $OLD_SNAPS" &>/dev/null
+    sleep 1
 fi
+
+
+VMS=$(qm list | awk '{print $1" "$3}' | grep -v 'VMID')
+SNAPSHOTS=$(zfs list -H -p -t snapshot -o name)
+STOPSNAPSHOT=""
+I=0
+for WORD in $VMS
+do
+    I=$(($I+1))
+    if [ $I == 1 ]
+    then
+        VM=$WORD
+        continue
+    fi
+    if [ $I == 2 ]
+    then
+        I=0
+        STATUS=$WORD
+        if [[ -t 1 ]]
+        then
+            echo $VM $STATUS
+        fi
+        # Находим снапшоты stopped для VM
+        for SNAPSHOT in $SNAPSHOTS
+        do
+            if [[ $SNAPSHOT =~ "stopped" ]] && [[ $SNAPSHOT =~ "vm-${VM}" ]]
+            then
+                STOPSNAPSHOT+="${SNAPSHOT}\n"
+            fi
+        done
+        if [[ -t 1 ]]
+        then
+            echo -e $STOPSNAPSHOT
+        fi
+        # Проверям статус VM
+        if [[ "$STATUS" == "stopped" ]]
+        then
+            if [[ "$STOPSNAPSHOT" == "" ]]
+            then
+                HEADER="Нет сников stopped для VM $VM со статусом $STATUS на $(hostname)"
+                curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>$HEADER</b>%0A" &>/dev/null
+                sleep 1
+            fi
+        else
+            if [[ "$STOPSNAPSHOT" != "" ]]
+            then
+                HEADER="Найдены снимки stopped для VM $VM со статусом $STATUS на $(hostname)"
+                STOPSNAPSHOT=$(echo -e $STOPSNAPSHOT)
+                curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>$HEADER</b>%0A  $STOPSNAPSHOT" &>/dev/null
+                sleep 1
+            fi
+        fi       
+        STOPSNAPSHOT=""
+    fi
+done

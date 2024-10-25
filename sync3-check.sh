@@ -64,7 +64,7 @@ fi
 
 # Основной код
 TIME=$(date +%s -d "$1 hour ago")
-DATASETS=$(zfs list -o name | grep 'vm-')
+DATASETS=$(zfs list -o name | grep 'vm-\|subvol-')
 for DATASET in $DATASETS
 do
     OLD_SNAPS+=$(zfs list -H -p -t snapshot -o sync:label,name,creation $DATASET | grep 'autosnap' | tail -1 | grep -v 'stopped' | awk -v time=$TIME '$3<time {printf "<b>#%s</b> %s %%0A" , $1, $2}')
@@ -73,12 +73,14 @@ done
 if [[ "$OLD_SNAPS" != "" ]]
 then
     HEADER="Найдены старые снимки Syncoid на $(hostname)"
-    curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>$HEADER</b>%0A $OLD_SNAPS" &>/dev/null
+    #curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>$HEADER</b>%0A $OLD_SNAPS" &>/dev/null
     sleep 1
 fi
 
 
 VMS=$(qm list | awk '{print $1" "$3}' | grep -v 'VMID')
+VMS+=" "
+VMS+=$(pct list | awk '{print $1" "$2}' | grep -v 'VMID')
 SNAPSHOTS=$(zfs list -H -p -t snapshot -o name)
 STOPSNAPSHOT=""
 I=0
@@ -101,7 +103,8 @@ do
         # Находим снапшоты stopped для VM
         for SNAPSHOT in $SNAPSHOTS
         do
-            if [[ $SNAPSHOT =~ "stopped" ]] && [[ $SNAPSHOT =~ "vm-${VM}" ]]
+            #if [[ $SNAPSHOT =~ "stopped" ]] && [[ $SNAPSHOT =~ "vm-${VM}" ]]
+            if [[ $SNAPSHOT =~ "stopped"  && ( $SNAPSHOT =~ "vm-${VM}" || $SNAPSHOT =~ "subvol-${VM}" ) ]]
             then
                 STOPSNAPSHOT+="${SNAPSHOT}\n"
             fi

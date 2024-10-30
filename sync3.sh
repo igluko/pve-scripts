@@ -18,28 +18,15 @@ SSH_OPT="BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no"
 SSH="ssh -o $SSH_OPT root@$DST_NODE"
 SCP="scp -o $SSH_OPT"
 # Use this fork https://github.com/mr-vinn/sanoid for --include-snaps filter
-SYNCOID="/usr/sbin/syncoid --sshoption=\"$SSH_OPT\" --sendoptions=-wR --force-delete --no-sync-snap --include-snaps=autosnap"
+SYNCOID="/root/Sync/syncoid --sshoption=\"$SSH_OPT\" --sendoptions=-wR --force-delete --no-sync-snap --include-snaps=autosnap"
 
 # check syncoid is available
-if [ ! -f /usr/sbin/syncoid ]; then
-    echo "[WARN] file /usr/sbin/syncoid not exists, installing syncoid"
+if [ ! -f /root/Sync/syncoid ]; then
+    echo "[WARN] file /root/Sync/syncoid not exists, installing syncoid"
     apt update
     apt install debhelper libcapture-tiny-perl libconfig-inifiles-perl pv lzop mbuffer build-essential -y
-    # it doesn't work in root directory
-    cd /tmp
-    # Download the repo as root to avoid changing permissions later
-    git clone https://github.com/jimsalterjrs/sanoid.git
-    cd sanoid
-    # checkout latest stable release or stay on master for bleeding edge stuff (but expect bugs!)
-    git checkout $(git tag | grep "^v" | tail -n 1)
-    ln -s packages/debian .
-    dpkg-buildpackage -uc -us
-    apt install ../sanoid_*_all.deb
-    
-    # enable and start the sanoid timer
-    systemctl enable sanoid.timer
-    systemctl start sanoid.timer
-
+    curl https://raw.githubusercontent.com/Budarov/sanoid/refs/heads/master/syncoid -o /root/Sync/syncoid
+    chmod +x /root/Sync/syncoid
 fi
 
 # check jq is available

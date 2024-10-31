@@ -78,58 +78,65 @@ then
 fi
 
 # Проверка соотвествия статуса VM и наличия снимка stopped
-VMS=$(qm list | awk '{print $1" "$3}' | grep -v 'VMID')
-VMS+=" "
-VMS+=$(pct list | awk '{print $1" "$2}' | grep -v 'VMID')
-SNAPSHOTS=$(zfs list -H -p -t snapshot -o name)
-STOPSNAPSHOT=""
-I=0
-for WORD in $VMS
-do
-    I=$(($I+1))
-    if [ $I == 1 ]
+RUNVMS=$(qm list | grep -v 'VMID' | awk -v status='running' '$3==status && $1<700 {printf $1}')
+if [[ "$RUNVMS" != "" ]]
+then
+    VMS=$(qm list | awk '{print $1" "$3}' | grep -v 'VMID')
+    if [[ $(pct list) != "" ]]
     then
-        VM=$WORD
-        continue
+        VMS+=" "
+        VMS+=$(pct list | awk '{print $1" "$2}' | grep -v 'VMID')
     fi
-    if [ $I == 2 ]
-    then
-        I=0
-        STATUS=$WORD
-        if [[ -t 1 ]]
+    SNAPSHOTS=$(zfs list -H -p -t snapshot -o name)
+    STOPSNAPSHOT=""
+    I=0
+    for WORD in $VMS
+    do
+        I=$(($I+1))
+        if [ $I == 1 ]
         then
-            echo $VM $STATUS
+            VM=$WORD
+            continue
         fi
-        # Находим снапшоты stopped для VM
-        for SNAPSHOT in $SNAPSHOTS
-        do
-            if [[ $SNAPSHOT =~ "stopped"  && ( $SNAPSHOT =~ "vm-${VM}" || $SNAPSHOT =~ "subvol-${VM}" ) ]]
-            then
-                STOPSNAPSHOT+="${SNAPSHOT}\n"
-            fi
-        done
-        if [[ -t 1 ]]
+        if [ $I == 2 ]
         then
-            echo -e $STOPSNAPSHOT
+            I=0
+            STATUS=$WORD
+            if [[ -t 1 ]]
+            then
+                echo $VM $STATUS
+            fi
+            # Находим снапшоты stopped для VM
+            for SNAPSHOT in $SNAPSHOTS
+            do
+                if [[ $SNAPSHOT =~ "stopped"  && ( $SNAPSHOT =~ "vm-${VM}" || $SNAPSHOT =~ "subvol-${VM}" ) ]]
+                then
+                    STOPSNAPSHOT+="${SNAPSHOT}\n"
+                fi
+            done
+            if [[ -t 1 ]]
+            then
+                echo -e $STOPSNAPSHOT
+            fi
+            # Проверям статус VM
+            if [[ "$STATUS" == "stopped" ]]
+            then
+                if [[ "$STOPSNAPSHOT" == "" ]]
+                then
+                    HEADER="Нет сников stopped для VM $VM со статусом $STATUS на $(hostname)"
+                    curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>$HEADER</b>%0A" &>/dev/null
+                    sleep 1
+                fi
+            else
+                if [[ "$STOPSNAPSHOT" != "" ]]
+                then
+                    HEADER="Найдены снимки stopped для VM $VM со статусом $STATUS на $(hostname)"
+                    STOPSNAPSHOT=$(echo -e $STOPSNAPSHOT)
+                    curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>$HEADER</b>%0A  $STOPSNAPSHOT" &>/dev/null
+                    sleep 1
+                fi
+            fi       
+            STOPSNAPSHOT=""
         fi
-        # Проверям статус VM
-        if [[ "$STATUS" == "stopped" ]]
-        then
-            if [[ "$STOPSNAPSHOT" == "" ]]
-            then
-                HEADER="Нет сников stopped для VM $VM со статусом $STATUS на $(hostname)"
-                curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>$HEADER</b>%0A" &>/dev/null
-                sleep 1
-            fi
-        else
-            if [[ "$STOPSNAPSHOT" != "" ]]
-            then
-                HEADER="Найдены снимки stopped для VM $VM со статусом $STATUS на $(hostname)"
-                STOPSNAPSHOT=$(echo -e $STOPSNAPSHOT)
-                curl -X POST https://api.telegram.org/bot$TG_TOKEN/sendMessage -d parse_mode=html -d chat_id=$TG_CHAT -d text="<b>$HEADER</b>%0A  $STOPSNAPSHOT" &>/dev/null
-                sleep 1
-            fi
-        fi       
-        STOPSNAPSHOT=""
-    fi
-done
+    done
+fi

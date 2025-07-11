@@ -156,8 +156,7 @@ then
         NEW_IP=$HOST_IP
         # Перед обновлением шлюза спрашиваем у пользователя
         read -e -p "Вы хотите изменить шлюз на $HOST_GATEWAY? [y/N]: " CHANGE_GATEWAY
-        NEW_GATEWAY=${CHANGE_GATEWAY:-$MOUNTED_FS_GATEWAY}
-
+        NEW_GATEWAY=$HOST_GATEWAY
         # Проверяем, существует ли файл /etc/hostname
         HOSTNAME_FILE="/mnt/etc/hostname"
         if [ -f "$HOSTNAME_FILE" ]; then

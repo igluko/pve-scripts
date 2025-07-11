@@ -33,7 +33,7 @@ done
 if [ -d /sys/firmware/efi ]; then
     H1 "Текущий режим загрузки: EFI"
     BOOT_MODE="efi"
-    QEMU_MACHINE_TYPE="q35"
+    QEMU_MACHINE_TYPE="q35 -bios /usr/share/ovmf/OVMF.fd"
 else
     H1 "Текущий режим загрузки: MBR"
     BOOT_MODE="mbr"
